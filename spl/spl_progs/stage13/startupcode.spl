@@ -1,0 +1,10 @@
+// loading module 7
+loadi(54,67);
+loadi(55,68);
+
+SP = 86 * 512 - 1;
+call BOOT_MODULE;
+
+SP = 8*512;
+
+ireturn;

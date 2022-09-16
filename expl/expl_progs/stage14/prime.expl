@@ -1,0 +1,27 @@
+int main () {
+    decl
+        int number, factor, temp, flag;
+    enddecl
+
+    begin
+        number = 2;
+        while (number < 100) do
+            factor = 2;
+            flag = 1;
+            while (factor < number) do
+                if ((number % factor) == 0) then
+                    flag = 0;
+                    break;
+                endif;
+                factor = factor + 1;
+            endwhile;
+
+            if (flag == 1) then
+                temp = exposcall("Write", -2, number);
+            endif;
+
+            number = number + 1;
+        endwhile;
+        return 0;
+    end
+}

@@ -1,0 +1,46 @@
+// setting process table entry for systemCallNumber
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 5;
+
+alias userSP R0;
+userSP = SP;
+
+// storing user stack pointer in process table
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16 + 13)] = SP; 
+
+// setting stack pointer to kernel stack
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16 + 11)] * 512 - 1;
+
+// instuctionPointer+2, returnValue, arguement3, arguement2, arguement1, interruptNumber
+
+alias fileDescriptor R1;
+fileDescriptor = [([PTBR + 2 * ((userSP - 4)/ 512)] * 512) + (userSP - 4) % 512];
+
+if (fileDescriptor != -2)
+then
+    // setting the interruptReturnValue to -1
+    [([PTBR + 2*((userSP-1)/512)] * 512) + ((userSP-1) % 512)] = -1;
+else
+    // accessing the number from stack and printing it
+    alias word R5;
+    word = [[PTBR + 2 * ((userSP - 3) / 512)] * 512 + ((userSP - 3) % 512)];
+
+    // print word;
+    multipush (R0);
+
+    R1 = 3;
+    R2 = [SYSTEM_STATUS_TABLE + 1];
+    R3 = word;
+
+    call DEVICE_MANAGER;
+
+    multipop (R0);
+
+    // settting the interruptReturnValue to 0
+    [([PTBR + 2*(userSP-1)/512] * 512) + ((userSP-1) % 512)] = 0;
+endif;
+
+SP = userSP;
+
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;
+
+ireturn;

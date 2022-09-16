@@ -1,0 +1,36 @@
+//SETTING MODE FLAG FIELD which indicates if execution is in user mode, exception handler or system call.
+
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 7;
+
+alias userSp R0;
+userSp = SP;
+
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 13] = SP;
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1]* 16) + 11] * 512 - 1;
+
+alias fileDescriptor R1;
+fileDescriptor = [([PTBR + 2 * ((userSp - 4)/512)] * 512) + (userSp - 4)%512];
+
+if(fileDescriptor != -1)
+then
+	[([PTBR + 2* ((userSp - 1) / 512)] * 512) + ((userSp - 1) % 512)] = -1;
+else
+	alias word R5;
+	word = [([PTBR + 2* ((userSp - 3) / 512)] * 512) + ((userSp - 3) % 512)];
+	
+	multipush (R0, R5);
+	R1 = 4;
+	R2 = [SYSTEM_STATUS_TABLE+1];
+	R3 = word;
+	call MOD_4;
+	multipop (R0, R5);
+	
+	[([PTBR + 2*((userSp - 1)/512)] * 512) + ((userSp - 1) % 512)] = 0;
+	
+	
+endif;
+
+SP = userSp;
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
+
+ireturn; 

@@ -1,0 +1,11 @@
+load --idle ../expl/expl_progs/stage14/idle.xsm
+load --init ../expl/expl_progs/stage14/init.xsm
+load --exec ../expl/expl_progs/stage14/code.xsm
+load --int=timer ../spl/spl_progs/stage14/timer.xsm
+load --int=7 ../spl/spl_progs/stage15/int7.xsm
+load --int=10 ../spl/spl_progs/stage14/int10.xsm
+load --module 0 ../spl/spl_progs/stage16/resourcemanager.xsm
+load --module 4 ../spl/spl_progs/stage15/devicemanager.xsm
+load --module 5 ../spl/spl_progs/stage14/scheduler.xsm
+load --module 7 ../spl/spl_progs/stage15/bootmodule.xsm
+load --os ../spl/spl_progs/stage15/startupcode.xsm

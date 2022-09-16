@@ -1,0 +1,25 @@
+63, 64 => library
+
+INIT:
+65, 66 => code
+76, 77 => stack
+78, 79 => heap
+80 => kernel stack
+
+IDLE:
+69, 70 => code
+81, 82 => stack
+83, 84 => heap
+85 => kernel stack
+
+CODE:
+86, 87 => code
+88, 89 => stack
+90, 91 => heap
+92 => kernel stack
+
+PRIME:
+93, 94 => code
+95, 96 => stack
+97, 98 => heap
+99 => kernel stack

@@ -1,0 +1,11 @@
+// loading module 7 from disk to memory
+loadi(54, 67);
+loadi(55, 68);
+
+SP = 85 * 512 - 1;
+call BOOT_MODULE;
+
+SP = 8*512;
+
+breakpoint;
+ireturn;
