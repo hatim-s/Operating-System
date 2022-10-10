@@ -1,0 +1,10 @@
+rm odd.xsm
+load --init ../expl/expl_progs/stage17/init.xsm
+load --exec ../expl/expl_progs/stage17/odd.xsm
+load --idle ../expl/expl_progs/stage17/idle.xsm
+load --int=9 ../spl/spl_progs/stage17/exec.xsm
+load --os ../spl/spl_progs/stage17/startupcode.xsm
+load --module 2 ../spl/spl_progs/stage17/memorymanager.xsm
+load --module 1 ../spl/spl_progs/stage17/processmanager.xsm
+load --module 7 ../spl/spl_progs/stage17/bootmodule.xsm
+load --exhandler ../spl/spl_progs/stage16/exception.xsm

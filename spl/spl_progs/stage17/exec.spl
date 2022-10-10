@@ -1,0 +1,112 @@
+breakpoint;
+//SETTING MODE FLAG FIELD which indicates if execution is in user mode, exception handler or system call.
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 9;
+
+alias userSp R0;
+userSp = SP;
+
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 13] = SP;
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1]* 16) + 11] * 512 - 1;
+
+// instructionPointer+2, returnValue, Arguement3, Arguement2, Arguement1
+
+alias fileName R1;
+fileName = [ ([((userSp-4)/512)*2 + PTBR]*512) + ((userSp-4) % 512)];
+
+alias inodeIndex R2;
+inodeIndex = 0;
+alias flag R3;
+flag = 0;
+while (inodeIndex < MAX_FILE_NUM) do
+    if ([INODE_TABLE + 16*inodeIndex + 1] == fileName) then
+        if ([INODE_TABLE + 16*inodeIndex] == EXEC) then
+            flag = 1;
+            break;
+        else 
+            break;
+        endif;
+    endif;
+    inodeIndex = inodeIndex + 1;
+endwhile;
+
+if (flag == 0) then
+    [ ([((userSp-1)/512)*2 + PTBR]*512) + ((userSp-1) % 512) ] = -1;
+    SP = userSp;
+    [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
+    ireturn;
+endif;
+
+multipush (R0, R1, R2, R3);
+R1 = 3;
+R2 = [SYSTEM_STATUS_TABLE + 1];
+call PROCESS_MANAGER;
+multipop  (R0, R1, R2, R3);
+
+alias userAreaPage R4;
+userAreaPage = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11];
+[MEMORY_FREE_LIST + userAreaPage] = 1;
+[SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1;
+
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11]*512 - 1;
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 4] = RUNNING;
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 7] = inodeIndex;
+
+alias currentProcess R10;
+currentProcess = [PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE+1] + 14];
+
+[currentProcess + 0] = 63;
+[currentProcess + 1] = "0100";
+[currentProcess + 2] = 64;
+[currentProcess + 3] = "0100";
+
+multipush (R0, R1, R2, R3, R4, R10);
+R1 = 1;
+call MEMORY_MANAGER;
+[currentProcess + 4] = R0;
+[currentProcess + 5] = "0110";
+
+R1 = 1;
+call MEMORY_MANAGER;
+[currentProcess + 6] = R0;
+[currentProcess + 7] = "0110";
+
+R1 = 1;
+call MEMORY_MANAGER;
+[currentProcess + 16] = R0;
+[currentProcess + 17] = "0110";
+
+R1 = 1;
+call MEMORY_MANAGER;
+[currentProcess + 18] = R0;
+[currentProcess + 19] = "0110";
+
+multipop  (R0, R1, R2, R3, R4, R10);
+
+alias iter R5;
+iter = 0;
+while(iter < 4) do
+	if([INODE_TABLE + (inodeIndex*16) + 8 + iter] != - 1) then
+		multipush(R1,R2,R3,R4,R5,R6);
+		R1 = 1;
+		call MEMORY_MANAGER;
+		multipop(R1,R2,R3,R4,R5,R6);
+		
+		[currentProcess + 8 + 2*iter] = R0;
+		[currentProcess + 9 + 2*iter] = "0100";
+		
+		loadi(R0,[INODE_TABLE + (inodeIndex*16) + 8 + iter]);
+	else
+		[currentProcess + 8 + 2*iter] = -1;
+		[currentProcess + 9 + 2*iter] = "0000";
+	endif;
+	
+	iter = iter + 1;
+endwhile;
+
+[[currentProcess + 16]*512] = [[currentProcess + 8]*512 +1];
+
+SP = 8*512;
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
+
+breakpoint;
+ireturn; 

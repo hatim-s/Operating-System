@@ -1,0 +1,4 @@
+1. swapped the values of free and occupied in memory free list
+2. didn't take the page table base value properly into account, should have taken from the page table
+3. didn't mark the page unused after freeing in
+4. didn't read documentation properly, should have spent more time
