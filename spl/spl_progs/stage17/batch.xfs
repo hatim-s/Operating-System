@@ -2,9 +2,15 @@ rm odd.xsm
 load --init ../expl/expl_progs/stage17/init.xsm
 load --exec ../expl/expl_progs/stage17/odd.xsm
 load --idle ../expl/expl_progs/stage17/idle.xsm
-load --int=9 ../spl/spl_progs/stage17/exec.xsm
-load --os ../spl/spl_progs/stage17/startupcode.xsm
-load --module 2 ../spl/spl_progs/stage17/memorymanager.xsm
-load --module 1 ../spl/spl_progs/stage17/processmanager.xsm
-load --module 7 ../spl/spl_progs/stage17/bootmodule.xsm
+load --int=6 ../spl/spl_progs/stage17/int6-read.xsm
+load --int=7 ../spl/spl_progs/stage17/int7-write.xsm
+load --int=9 ../spl/spl_progs/stage17/int9-exec.xsm
+load --int=10 ../spl/spl_progs/stage17/int10-halt.xsm
+load --os ../spl/spl_progs/stage17/startup.xsm
+load --module 0 ../spl/spl_progs/stage17/mod0-resource.xsm
+load --module 1 ../spl/spl_progs/stage17/mod1-process.xsm
+load --module 2 ../spl/spl_progs/stage17/mod2-memory.xsm
+load --module 4 ../spl/spl_progs/stage17/mod4-device.xsm
+load --module 5 ../spl/spl_progs/stage17/mod5-scheduler.xsm
+load --module 7 ../spl/spl_progs/stage17/mod7-boot.xsm
 load --exhandler ../spl/spl_progs/stage16/exception.xsm
