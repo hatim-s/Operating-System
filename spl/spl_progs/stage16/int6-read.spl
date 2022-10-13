@@ -1,5 +1,3 @@
-//SETTING MODE FLAG FIELD which indicates if execution is in user mode, exception handler or system call.
-
 [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 7;
 
 alias userSp R0;
@@ -11,8 +9,7 @@ SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1]* 16) + 11] * 512 - 1;
 alias fileDescriptor R1;
 fileDescriptor = [([PTBR + 2 * ((userSp - 4)/512)] * 512) + (userSp - 4)%512];
 
-if(fileDescriptor != -1)
-then
+if(fileDescriptor != -1) then
 	[([PTBR + 2* ((userSp - 1) / 512)] * 512) + ((userSp - 1) % 512)] = -1;
 else
 	alias word R5;

@@ -30,7 +30,6 @@ if(functionNum == 4) then
 	multipop(R1,R2,R3);
 	
 	read;
-	
 	[PROCESS_TABLE + (currentPID * 16) + 4] = WAIT_TERMINAL;
 	
 	multipush(R1,R2,R3);
@@ -39,10 +38,7 @@ if(functionNum == 4) then
 	
 	alias physicalAddr R4;
 	physicalAddr = [PTBR + 2 * ((R3)/512)] * 512 + (R3)%512;
-	[physicalAddr] = [PROCESS_TABLE + (currentPID * 16) + 8];
-	
-	
-	
+	[physicalAddr] = [PROCESS_TABLE + (currentPID * 16) + 8];	
 	return;
 	
 else
