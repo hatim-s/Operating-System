@@ -9,6 +9,7 @@ if (functionNum == 2) then
     call MEMORY_MANAGER;
     multipop  (R0, R1, R2);
 
+    breakpoint;
     return;
 endif;
 
@@ -26,6 +27,8 @@ if (functionNum == 3) then
     multipop  (R0, R1, R2);
 
     [PROCESS_TABLE + 16*currentPID + 4] = TERMINATED;
+
+    breakpoint;
     return;
 endif;
 
@@ -33,7 +36,8 @@ endif;
 if (functionNum == 4) then
     alias currentPID R2;
     alias currentProcessTableEntry R3;
-	   R3 = [PROCESS_TABLE + 16*currentPID + 14];
+	
+    R3 = [PROCESS_TABLE + 16*currentPID + 14];
     [currentProcessTableEntry + 0] = -1;
     [currentProcessTableEntry + 1] = "0000";
     [currentProcessTableEntry + 2] = -1;
@@ -56,5 +60,6 @@ if (functionNum == 4) then
         counter = counter + 2;
     endwhile;
 
+    breakpoint;
     return;
 endif;
