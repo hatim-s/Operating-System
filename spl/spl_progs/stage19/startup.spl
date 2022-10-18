@@ -1,0 +1,37 @@
+// loading module 7 from disk to memory
+loadi(54, 67);
+loadi(55, 68);
+
+SP = 85 * 512 - 1;
+call BOOT_MODULE;
+
+alias counter R0;
+counter = 0;
+while (counter < 86) do
+    [MEMORY_FREE_LIST + counter] = 1;
+    counter = counter + 1;
+endwhile;
+
+while (counter < 128) do
+    [MEMORY_FREE_LIST + counter] = 0;
+    counter = counter + 1;
+endwhile;
+
+[TERMINAL_STATUS_TABLE + 0] = 0;
+
+[SYSTEM_STATUS_TABLE + 1] = 0;
+[SYSTEM_STATUS_TABLE + 3] = 0;
+[SYSTEM_STATUS_TABLE + 2] = 42;
+
+[DISK_STATUS_TABLE + 0] = 0;
+
+counter = 0;
+while (counter < 10) do
+    [DISK_MAP_TABLE + 10 + counter] = -1;
+    counter = counter + 1;
+endwhile;
+
+SP = 8*512;
+
+breakpoint;
+ireturn;

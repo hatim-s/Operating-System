@@ -1,0 +1,2 @@
+1. didn't push all the useful registers before calling another module
+2. forgot (counter+1) while setting up page tables 
