@@ -5,8 +5,11 @@ int main (){
     enddecl
     begin        
         temp = exposcall ("Read", -1, filename);
-        temp = exposcall ("Write", -2, filename);
         temp = exposcall ("Exec", filename);
+
+        if (temp == -1) then
+            temp = exposcall ("Write", -2, "BAD COMMAND");
+        endif;
         return 0;
     end
 }
