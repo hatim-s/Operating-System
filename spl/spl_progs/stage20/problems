@@ -1,0 +1,12 @@
+## continue counts:
+- page 16 -> 7
+- page 18 -> 9
+- page 20 -> 39
+- page 22 -> 19
+
+## problems:
+1. return value issues with fork
+2. register pushing and popping issues
+3. 'temp' - type issues, how to properly call modules
+    - never use other registers within the 'multipush - multipop' pair
+4. page return issues with memory manager -- corrected
