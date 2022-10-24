@@ -1,0 +1,132 @@
+breakpoint;
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 9] = 8;
+
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 13] = SP;
+SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 11]*512 - 1;
+
+// instructionPointer+2, returnValue, Arguement3, Arguement2, Arguement1 ...
+
+alias userSP R0;
+R0 = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 13];
+
+alias currentPID R10;
+currentPID = [SYSTEM_STATUS_TABLE + 1];
+
+alias childPID R11;
+
+multipush (R0);
+R1 = 1;
+call PROCESS_MANAGER;
+childPID = R0;
+multipop  (R0);
+
+
+if (childPID == -1) then
+    [PROCESS_TABLE + currentPID*16 + 9] = 0;
+    [[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1) % 512] = -1;
+    SP = userSP;
+
+    breakpoint;
+    ireturn;
+endif;
+
+if ([PTBR + 4] == -1) then
+    multipush (R0, R10, R11);
+    R1 = 1;
+    call MEMORY_MANAGER;
+    [PTBR + 4] = R0;
+    [PTBR + 5] = "0110";
+
+    R1 = 1;
+    call MEMORY_MANAGER;
+    [PTBR + 6] = R0;
+    [PTBR + 7] = "0110";
+    multipop  (R0, R10, R11);
+endif;
+
+multipush (R0, R10, R11);
+R1 = 1;
+call MEMORY_MANAGER;
+R15 = R0;
+multipop  (R0, R10, R11);
+[PAGE_TABLE_BASE + childPID*20 + 16] = R15;
+[PAGE_TABLE_BASE + childPID*20 + 17] = "0110";
+
+multipush (R0, R10, R11);
+R1 = 1;
+call MEMORY_MANAGER;
+R15 = R0;
+multipop  (R0, R10, R11);
+[PAGE_TABLE_BASE + childPID*20 + 18] = R15;
+[PAGE_TABLE_BASE + childPID*20 + 19] = "0110";
+
+multipush (R0, R10, R11);
+R1 = 1;
+call MEMORY_MANAGER;
+R15 = R0;
+multipop  (R0, R10, R11);
+[PROCESS_TABLE + childPID*16 + 11] = R15;
+
+[PROCESS_TABLE + childPID*16 + 3] = [PROCESS_TABLE + currentPID*16 + 3];
+[PROCESS_TABLE + childPID*16 + 6] = [PROCESS_TABLE + currentPID*16 + 4];
+[PROCESS_TABLE + childPID*16 + 7] = [PROCESS_TABLE + currentPID*16 + 7];
+[PROCESS_TABLE + childPID*16 + 10] = [PROCESS_TABLE + currentPID*16 + 10];
+[PROCESS_TABLE + childPID*16 + 13] = [PROCESS_TABLE + currentPID*16 + 13];
+[PROCESS_TABLE + childPID*16 + 14] = PAGE_TABLE_BASE + 20*childPID;
+
+[PROCESS_TABLE + childPID*16 + 0] = 0;
+[PROCESS_TABLE + childPID*16 + 9] = 0;
+[PROCESS_TABLE + childPID*16 + 12] = 0;
+
+[PROCESS_TABLE + childPID*16 + 2] = currentPID;
+[PROCESS_TABLE + childPID*16 + 4] = CREATED;
+
+alias counter R5;
+counter = 0;
+while (counter < 10) do
+    [DISK_MAP_TABLE + childPID*10 + counter] = [DISK_MAP_TABLE + currentPID*10 + counter]; 
+    counter = counter + 1;
+endwhile;
+
+counter = 0;
+while (counter < 16) do
+    [PAGE_TABLE_BASE + childPID*20 + counter] = [PAGE_TABLE_BASE + currentPID*20 + counter];
+    counter = counter + 1;
+endwhile;
+
+counter = 4;
+while (counter < 16) do
+    if ([PAGE_TABLE_BASE + childPID*20 + counter] != -1) then
+        [MEMORY_FREE_LIST + [PAGE_TABLE_BASE + childPID*20 + counter]] = [MEMORY_FREE_LIST + [PAGE_TABLE_BASE + childPID*20 + counter]] + 1;
+    endif;
+    counter = counter + 2;
+endwhile;
+
+counter = 0; 
+while (counter < 512) do
+    [[PAGE_TABLE_BASE + childPID*20 + 16] * 512 + counter] = [[PAGE_TABLE_BASE + currentPID*20 + 16] * 512 + counter];
+    counter = counter + 1;
+endwhile;
+
+counter = 0;
+while (counter < 512) do
+    [[PAGE_TABLE_BASE + childPID*20 + 18] * 512 + counter] = [[PAGE_TABLE_BASE + currentPID*20 + 18] * 512 + counter];
+    counter = counter + 1;
+endwhile;
+
+if ([PROCESS_TABLE + childPID*16 + 11] != -1) then
+[[PROCESS_TABLE + childPID*16 + 11]*512] = BP;
+endif;
+
+alias returnAddr R2;
+returnAddr = [PROCESS_TABLE + currentPID*16 + 13] - 1;
+[[PTBR + 2*(returnAddr / 512)]*512 + (returnAddr % 512)] = childPID;
+
+returnAddr = [PROCESS_TABLE + childPID*16 + 13] - 1;
+[[[PROCESS_TABLE + 16*childPID + 14] + 2*(returnAddr / 512)]*512 + (returnAddr % 512)] = 0;
+
+[PROCESS_TABLE + currentPID*16 + 9] = 0;
+SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE  + 1]*16 +  13];
+
+breakpoint;
+ireturn;

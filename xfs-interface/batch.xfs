@@ -1,0 +1,28 @@
+rm fork.xsm
+rm pid.xsm
+rm odd.xsm
+rm even.xsm
+load --init ../expl/expl_progs/stage21/init.xsm
+load --idle ../expl/expl_progs/stage21/idle.xsm
+load --exec ../expl/expl_progs/stage21/fork.xsm
+load --exec ../expl/expl_progs/stage21/pid.xsm
+load --exec ../expl/expl_progs/stage21/odd.xsm
+load --exec ../expl/expl_progs/stage21/even.xsm
+load --exhandler ../spl/spl_progs/stage21/exception.xsm
+load --int=console ../spl/spl_progs/stage21/int-console.xsm
+load --int=disk ../spl/spl_progs/stage21/int-disk.xsm
+load --int=timer ../spl/spl_progs/stage21/int-timer.xsm
+load --int=6 ../spl/spl_progs/stage21/int6-read.xsm
+load --int=7 ../spl/spl_progs/stage21/int7-write.xsm
+load --int=8 ../spl/spl_progs/stage21/int8-fork.xsm
+load --int=9 ../spl/spl_progs/stage21/int9-exec.xsm
+load --int=10 ../spl/spl_progs/stage21/int10-halt.xsm
+load --int=11 ../spl/spl_progs/stage21/int11-wait-signal.xsm
+load --int=15 ../spl/spl_progs/stage21/int15-shutdown.xsm
+load --module 0 ../spl/spl_progs/stage21/mod0-resource.xsm
+load --module 1 ../spl/spl_progs/stage21/mod1-process.xsm
+load --module 2 ../spl/spl_progs/stage21/mod2-memory.xsm
+load --module 4 ../spl/spl_progs/stage21/mod4-device.xsm
+load --module 5 ../spl/spl_progs/stage21/mod5-scheduler.xsm
+load --module 7 ../spl/spl_progs/stage21/mod7-boot.xsm
+load --os ../spl/spl_progs/stage21/startup.xsm
