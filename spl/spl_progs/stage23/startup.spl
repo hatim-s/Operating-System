@@ -1,0 +1,61 @@
+// loading module 7 from disk to memory
+loadi(54, 67);
+loadi(55, 68);
+
+SP = 85 * 512 - 1;
+call BOOT_MODULE;
+
+// setting up memory-free-list
+alias counter R0;
+counter = 0;
+while (counter < 86) do
+    [MEMORY_FREE_LIST + counter] = 1;
+    counter = counter + 1;
+endwhile;
+
+while (counter < 128) do
+    [MEMORY_FREE_LIST + counter] = 0;
+    counter = counter + 1;
+endwhile;
+
+[TERMINAL_STATUS_TABLE + 0] = 0;
+
+[SYSTEM_STATUS_TABLE] = 1;
+[SYSTEM_STATUS_TABLE + 1] = 0;
+[SYSTEM_STATUS_TABLE + 2] = 40;
+[SYSTEM_STATUS_TABLE + 3] = 0;
+
+[DISK_STATUS_TABLE + 0] = 0;
+
+counter = 0;
+while (counter < 10) do
+    [DISK_MAP_TABLE + 10 + counter] = -1;
+    counter = counter + 1;
+endwhile;
+
+counter = 0;
+while (counter < MAX_SEM_COUNT) do
+    [SEMAPHORE_TABLE + counter*4] = -1;
+    [SEMAPHORE_TABLE + counter*4 + 1] = 0;
+
+    counter = counter + 1;
+endwhile;
+
+counter = 0;
+while (counter < MAX_FILE_NUM) do
+    [FILE_STATUS_TABLE + counter*4 + 0] = -1;
+    [FILE_STATUS_TABLE + counter*4 + 1] = -1;
+    counter = counter + 1;
+endwhile;
+
+counter = 0;
+while (counter < MAX_BUFFER) do
+    [BUFFER_TABLE + counter*4 + 0] = -1;
+    [BUFFER_TABLE + counter*4 + 1] = 0;
+    counter = counter + 1;
+endwhile;
+
+SP = 8*512;
+
+breakpoint;
+ireturn;

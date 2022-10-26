@@ -1,0 +1,35 @@
+breakpoint;
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 9] = 5;
+
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 13] = SP; 
+SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 11]*512 - 1;
+
+// instuctionPointer+2, returnValue, arguement3, arguement2, arguement1, interruptNumber
+
+alias userSP R0;
+userSP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 13];
+
+alias fileDescriptor R1;
+fileDescriptor = [[PTBR + 2*((userSP-4)/512)]*512 + (userSP-4)%512];
+
+if (fileDescriptor != -2) then
+    [[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = -1;
+else
+    alias word R2;
+    word = [[PTBR + 2*((userSP-3)/512)]*512 + (userSP-3)%512];
+
+    multipush (R0);
+    R1 = 3;
+    R3 = word;
+    R2 = [SYSTEM_STATUS_TABLE+1];
+    call DEVICE_MANAGER;
+    multipop (R0);
+
+    [([PTBR + 2*(userSP-1)/512] * 512) + ((userSP-1) % 512)] = 0;
+endif;
+
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;
+SP = userSP;
+
+breakpoint;
+ireturn;

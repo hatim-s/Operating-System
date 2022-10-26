@@ -1,0 +1,200 @@
+breakpoint;
+
+// loading the inode table from disk to memory
+loadi (59, 3);
+loadi (60, 4);
+
+// loading the disk free list
+loadi (61, 2);
+
+// loading exception handler routine from disk to memory
+loadi (2, 15);
+loadi (3, 16);
+
+// loading timer interrupt
+loadi (4, 17);
+loadi (5, 18);
+
+// loading disk interrupt
+loadi (6, 19);
+loadi (7, 20);
+
+// loading console interrupt
+loadi (8, 21);
+loadi (9, 22);
+
+// loading interrupt 4 from disk to memory (file create-delete)
+loadi (10, 23);
+loadi (11, 24);
+
+// loading interrupt 6 from disk to memory (console reading)
+loadi (14, 27);
+loadi (15, 28);
+
+// loading interrupt 7 from disk to memory (console writing)
+loadi (16, 29);
+loadi (17, 30);
+
+// loading interrupt 8 from disk to memory (fork)
+loadi (18, 31);
+loadi (19, 32);
+
+// loading interrupt 9 from disk to memory (exec)
+loadi (20, 33);
+loadi (21, 34);
+
+// loading interrupt 10 from disk to memory (halting)
+loadi (22, 35);
+loadi (23, 36);
+
+// loading interrupt 11 from disk to memory (pid, ppid, wait, signal)
+loadi (24, 37);
+loadi (25, 38);
+
+// loading interrupt 13 from disk to memory (semaphore acquire-release)
+loadi (28, 41);
+loadi (29, 42);
+
+// loading interrupt 14 from disk to memory (semaphore lock-unlock)
+loadi (30, 43);
+loadi (31, 44);
+
+// loading interrupt 15 from disk to memory (shutdown)
+loadi (32, 45);
+loadi (33, 46);
+
+// loading module 0 from disk to memory (resource manager)
+loadi (40, 53);
+loadi (41, 54);
+
+// loading module 1 from disk to memory (process manager)
+loadi (42, 55);
+loadi (43, 56);
+
+// loading module 2 from disk to memory (memory manager)
+loadi (44, 57);
+loadi (45, 58);
+
+// loading module 4 from disk to memory (device manager)
+loadi (48, 61);
+loadi (49, 62);
+
+// loading module 5 from disk to memory (scheduler)
+loadi (50, 63);
+loadi (51, 64);
+
+// loading the library code
+loadi (63, 13);
+loadi (64, 14);
+
+// loading INIT program from disk to memory
+loadi (65, 7);
+loadi (66, 8);
+
+// loading IDLE Program from disk to memory
+loadi (69, 11);
+loadi (70, 12);
+
+// setting process table entries to TERMINATED
+alias counter R0;
+counter = 0;
+while (counter < MAX_PROC_NUM) do
+    [PROCESS_TABLE + (counter * 16) + 4] = TERMINATED;
+    counter = counter + 1;
+endwhile;
+
+//---------------------------------- IDLE PROGRAM --------------------------
+[PROCESS_TABLE + 1] = 0;
+[PROCESS_TABLE + 4] = RUNNING;
+[PROCESS_TABLE + 11] = 85;
+[PROCESS_TABLE + 12] = 0;
+[PROCESS_TABLE + 13] = 8*512;
+[PROCESS_TABLE + 14] = PAGE_TABLE_BASE;
+[PROCESS_TABLE + 15] = 10;
+
+//Library
+[PAGE_TABLE_BASE + 0] = 63;
+[PAGE_TABLE_BASE + 1] = "0100";
+[PAGE_TABLE_BASE + 2] = 64;
+[PAGE_TABLE_BASE + 3] = "0100";
+
+//Heap
+[PAGE_TABLE_BASE + 4] = 83;
+[PAGE_TABLE_BASE + 5] = "0110";
+[PAGE_TABLE_BASE + 6] = 84;
+[PAGE_TABLE_BASE + 7] = "0110";
+
+//Code
+[PAGE_TABLE_BASE + 8] = 69;
+[PAGE_TABLE_BASE + 9] = "0100";
+[PAGE_TABLE_BASE + 10] = 70;
+[PAGE_TABLE_BASE + 11] = "0100";
+[PAGE_TABLE_BASE + 12] = -1;
+[PAGE_TABLE_BASE + 13] = "0000";
+[PAGE_TABLE_BASE + 14] = -1;
+[PAGE_TABLE_BASE + 15] = "0000";
+
+//Stack
+[PAGE_TABLE_BASE + 16] = 81;
+[PAGE_TABLE_BASE + 17] = "0110";
+[PAGE_TABLE_BASE + 18] = 82;
+[PAGE_TABLE_BASE + 19] = "0110";
+
+[81*512] = [69*512 + 1];
+
+//---------------------------------- INIT PROGRAM --------------------------
+//Adding data to process table
+[PROCESS_TABLE+16 + 1] = 1;
+[PROCESS_TABLE+16 + 3] = 1;
+[PROCESS_TABLE+16 + 4] = CREATED;
+[PROCESS_TABLE+16 + 11] = 80; 
+[PROCESS_TABLE+16 + 12] = 0;
+[PROCESS_TABLE+16 + 13] = 8*512;
+[PROCESS_TABLE+16 + 14] = PAGE_TABLE_BASE+20;
+[PROCESS_TABLE+16 + 15] = 10;
+
+//setting up the logical pages to link to physical address
+
+//library
+[PAGE_TABLE_BASE+20 + 0] = 63;
+[PAGE_TABLE_BASE+20 + 1] = "0100";
+[PAGE_TABLE_BASE+20 + 2] = 64;
+[PAGE_TABLE_BASE+20 + 3] = "0100";
+
+//heap
+[PAGE_TABLE_BASE+20 + 4] = 78;
+[PAGE_TABLE_BASE+20 + 5] = "0110";
+[PAGE_TABLE_BASE+20 + 6] = 79;
+[PAGE_TABLE_BASE+20 + 7] = "0110";
+
+//Code
+[PAGE_TABLE_BASE+20 + 8] = 65;
+[PAGE_TABLE_BASE+20 + 9] = "0100";
+[PAGE_TABLE_BASE+20 + 10] = 66;
+[PAGE_TABLE_BASE+20 + 11] = "0100";
+[PAGE_TABLE_BASE+20 + 12] = -1;
+[PAGE_TABLE_BASE+20 + 13] = "0000";
+[PAGE_TABLE_BASE+20 + 14] = -1;
+[PAGE_TABLE_BASE+20 + 15] = "0000";
+
+//Stack
+[PAGE_TABLE_BASE+20 + 16] = 76;
+[PAGE_TABLE_BASE+20 + 17] = "0110";
+[PAGE_TABLE_BASE+20 + 18] = 77;
+[PAGE_TABLE_BASE+20 + 19] = "0110";
+
+//Setting top of stack to the second word in header
+[76*512] = [65*512 + 1];
+
+counter = 1;
+while (counter <= 8) do
+    [81*512 - (counter*2)] = -1;
+    counter = counter + 1;
+endwhile;
+
+// setting PageTableBase and PageTableLength registers
+PTBR = PAGE_TABLE_BASE;
+PTLR = 10;
+
+breakpoint;
+return;
