@@ -80,6 +80,7 @@ pcb = PROCESS_TABLE + currentPID*16;
 [childPCB + 10] = [pcb + 10];
 [childPCB + 13] = [pcb + 13];
 [childPCB + 14] = childPTBR;
+[childPCB + 15] = 10;
 
 [childPCB + 0] = 0;
 [childPCB + 9] = 0;
