@@ -2,7 +2,7 @@ breakpoint;
 alias functionNum R1;
 
 // get PCB entry
-if (functionNum == 1) then
+if (functionNum == GET_PCB_ENTRY) then
     alias counter R5;
     counter = 0;
     while (counter < MAX_PROC_NUM) do
@@ -24,7 +24,7 @@ if (functionNum == 1) then
 endif;
 
 // free user area page
-if (functionNum == 2) then
+if (functionNum == FREE_USER_AREA_PAGE) then
     alias currentPID R2;
     alias kernelStack R3;
     kernelStack = [PROCESS_TABLE + currentPID*16 + 11];
@@ -44,7 +44,7 @@ if (functionNum == 2) then
     endwhile;
 
     multipush (R0, R1, R2);
-    R1 = 2;
+    R1 = RELEASE_PAGE;
     R2 = [PROCESS_TABLE + currentPID*16 + 11];
     call MEMORY_MANAGER;
     multipop  (R0, R1, R2);
@@ -54,15 +54,15 @@ if (functionNum == 2) then
 endif;
 
 // exit process
-if (functionNum == 3) then
+if (functionNum == EXIT_PROCESS) then
     alias currentPID R2;
     multipush (R0, R1, R2);
-    R1 = 4;
+    R1 = FREE_PAGE_TABLE;
     call PROCESS_MANAGER;
     multipop  (R0, R1, R2);
 
     multipush (R0, R1, R2);
-    R1 = 2;
+    R1 = FREE_USER_AREA_PAGE;
     call PROCESS_MANAGER;
     multipop  (R0, R1, R2);
 
@@ -73,7 +73,7 @@ if (functionNum == 3) then
 endif;
 
 // free page tables
-if (functionNum == 4) then
+if (functionNum == FREE_PAGE_TABLE) then
     alias currentPID R2;
     alias currentProcessTableEntry R3;
 	
@@ -88,7 +88,7 @@ if (functionNum == 4) then
     while (counter < 20) do
         if ([currentProcessTableEntry + counter] != -1) then
             multipush (R0, R1, R2, R5);
-            R1 = 2;
+            R1 = RELEASE_PAGE;
             R2 = [currentProcessTableEntry + counter];
             call MEMORY_MANAGER;
             multipop  (R0, R1, R2, R5);
@@ -105,7 +105,7 @@ if (functionNum == 4) then
         if (counter == 2 || counter == 3 || counter == 8 || counter == 9) then
             if ([DISK_MAP_TABLE + 10*currentPID + counter] != -1) then
                 multipush (R1, R2, R3, R5);
-                R1 = 4;
+                R1 = RELEASE_BLOCK;
                 R2 = [DISK_MAP_TABLE + 10*currentPID + counter];
                 call MEMORY_MANAGER;
                 multipop (R1, R2, R3, R5);

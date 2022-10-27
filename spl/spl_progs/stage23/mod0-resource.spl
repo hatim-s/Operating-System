@@ -2,7 +2,7 @@ breakpoint;
 alias functionNum R1;
 
 // acquire Disk
-if (functionNum == 3) then
+if (functionNum == ACQUIRE_DISK) then
 	alias currentPID R2;
 	while ([DISK_STATUS_TABLE + 0] == 1) do
 		[PROCESS_TABLE + currentPID*16 + 4] = WAIT_DISK;
@@ -19,7 +19,7 @@ if (functionNum == 3) then
 endif;
 
 // acquire inode
-if (functionNum == 4) then
+if (functionNum == ACQUIRE_INODE) then
 	alias inodeIndex R2;
 	alias currentPID R3;
 	while ([FILE_STATUS_TABLE + 4*inodeIndex] != -1) do
@@ -45,7 +45,7 @@ if (functionNum == 4) then
 endif;
 
 // release inode
-if (functionNum == 5) then
+if (functionNum == RELEASE_INODE) then
 	alias inodeIndex R2;
 	alias currentPID R3;
 	if ([FILE_STATUS_TABLE + 4*inodeIndex] != currentPID) then
@@ -71,7 +71,7 @@ if (functionNum == 5) then
 endif;
 
 // acquire semaphore
-if (functionNum == 6) then
+if (functionNum == ACQUIRE_SEMAPHORE) then
 	alias currentPID R2;
 	alias counter R5;
 	counter = 0;
@@ -94,7 +94,7 @@ if (functionNum == 6) then
 endif;
 
 // release semaphore
-if (functionNum == 7) then
+if (functionNum == RELEASE_SEMAPHORE) then
 	alias semTableIndex R2;
 	alias currentPID R3;
 
@@ -123,7 +123,7 @@ if (functionNum == 7) then
 endif;
 
 //acquire terminal
-if(functionNum == 8) then
+if(functionNum == ACQUIRE_TERMINAL) then
 	alias currentPID R2;
 
 	while([TERMINAL_STATUS_TABLE] == 1) do
@@ -141,7 +141,7 @@ if(functionNum == 8) then
 endif;
 
 //release terminal
-if(functionNum == 9) then 
+if(functionNum == RELEASE_TERMINAL) then 
 	alias currentPID R2;
 
 	if([TERMINAL_STATUS_TABLE + 1] != currentPID) then

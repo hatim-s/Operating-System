@@ -2,7 +2,7 @@ breakpoint;
 alias functionNum R1;
 
 // get free page
-if (functionNum == 1) then
+if (functionNum == GET_FREE_PAGE) then
     [SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] + 1;
     while ([SYSTEM_STATUS_TABLE + 2] == 0) do
         [PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE + 1] + 4] = WAIT_MEM;
@@ -33,7 +33,7 @@ if (functionNum == 1) then
 endif;
 
 // release page
-if (functionNum == 2) then
+if (functionNum == RELEASE_PAGE) then
     alias pageNumber R2;
     [MEMORY_FREE_LIST + pageNumber] = [MEMORY_FREE_LIST + pageNumber] - 1;
     if ([MEMORY_FREE_LIST + pageNumber] == 0) then
@@ -54,13 +54,13 @@ if (functionNum == 2) then
 endif;
 
 // release block
-if (functionNum == 4) then
+if (functionNum == RELEASE_BLOCK) then
     [DISK_FREE_LIST + R1] = 0;
     return;
 endif;
 
 // get code page
-if (functionNum == 5) then
+if (functionNum == GET_CODE_PAGE) then
     alias blockNumber R2;
     alias i R5;
     alias j R6;
@@ -81,13 +81,13 @@ if (functionNum == 5) then
     endwhile;
 
     multipush (R1, R2, R5, R6);
-    R1 = 1;
+    R1 = GET_FREE_PAGE;
     call MEMORY_MANAGER;
     multipop  (R1, R2, R5, R6);
 
     alias pageNumber R0;
     multipush (R0, R1, R2, R5, R6);
-    R1 = 2;
+    R1 = DISK_LOAD;
     R3 = R0;
     R4 = R2;
     R2 = [SYSTEM_STATUS_TABLE + 1];

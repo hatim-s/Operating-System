@@ -14,7 +14,7 @@ currentPID = [SYSTEM_STATUS_TABLE+1];
 
 alias childPID R2;
 multipush (R0, R1);
-R1 = 1;
+R1 = GET_PCB_ENTRY;
 call PROCESS_MANAGER;
 childPID = R0;
 multipop  (R0, R1);
@@ -30,12 +30,12 @@ endif;
 
 if ([PTBR + 4] == -1) then
     multipush (R0, R1, R2);
-    R1 = 1;
+    R1 = GET_FREE_PAGE;
     call MEMORY_MANAGER;
     [PTBR + 4] = R0;
     [PTBR + 5] = "0110";
 
-    R1 = 1;
+    R1 = GET_FREE_PAGE;
     call MEMORY_MANAGER;
     [PTBR + 6] = R0;
     [PTBR + 7] = "0110";
@@ -46,7 +46,7 @@ alias childPTBR R3;
 childPTBR = PAGE_TABLE_BASE + childPID*20;
 
 multipush (R0, R1, R2, R3);
-R1 = 1;
+R1 = GET_FREE_PAGE;
 call MEMORY_MANAGER;
 R15 = R0;
 multipop  (R0, R1, R2, R3);
@@ -54,7 +54,7 @@ multipop  (R0, R1, R2, R3);
 [childPTBR + 17] = "0110";
 
 multipush (R0, R1, R2, R3);
-R1 = 1;
+R1 = GET_FREE_PAGE;
 call MEMORY_MANAGER;
 R15 = R0;
 multipop  (R0, R1, R2, R3);
@@ -65,7 +65,7 @@ alias childPCB R4;
 childPCB = PROCESS_TABLE + childPID*16;
 
 multipush (R0, R1, R2, R3, R4);
-R1 = 1;
+R1 = GET_FREE_PAGE;
 call MEMORY_MANAGER;
 R15 = R0;
 multipop  (R0, R1, R2, R3, R4);

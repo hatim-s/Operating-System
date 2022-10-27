@@ -3,6 +3,8 @@ breakpoint;
 [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16 + 13)] = SP; 
 SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16 + 11)] * 512 - 1;
 
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 10;
+
 if ([PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 9] != 9) then
     alias counter R5;
     counter = 0;
@@ -18,13 +20,11 @@ if ([PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 9] != 9) then
     endwhile;
 endif;
 
-[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 10;
-
 alias userSP R0;
 userSP = SP;
 
 multipush (R0);
-R1 = 3;
+R1 = EXIT_PROCESS;
 R2 = [SYSTEM_STATUS_TABLE + 1];
 call PROCESS_MANAGER;
 multipop  (R0);

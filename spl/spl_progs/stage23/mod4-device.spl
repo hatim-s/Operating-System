@@ -3,12 +3,12 @@ alias functionNum R1;
 alias currentPID R2;
 
 // Disk Store
-if (functionNum == 1) then
+if (functionNum == DISK_STORE) then
 	alias pageNumber R3;
 	alias blockNumber R4;
 
 	multipush (R1, R2, R3, R4);
-	R1 = 3;
+	R1 = ACQUIRE_DISK;
 	R2 = currentPID;
 	call RESOURCE_MANAGER;
 	multipop  (R1, R2, R3, R4);
@@ -32,9 +32,9 @@ if (functionNum == 1) then
 endif;
 
 // Disk Load
-if (functionNum == 2) then
+if (functionNum == DISK_LOAD) then
 	multipush (R1, R2, R3, R4);
-	R1 = 3;
+	R1 = ACQUIRE_DISK;
 	R2 = currentPID;
 	call RESOURCE_MANAGER;
 	multipop  (R1, R2, R3, R4);
@@ -60,19 +60,19 @@ endif;
 
 
 // Terminal Write
-if(functionNum == 3) then
+if(functionNum == TERMINAL_WRITE) then
 	multipush(R1,R2,R3);
-	R1 = 8;
+	R1 = ACQUIRE_TERMINAL;
 	R2 = currentPID;
-	call MOD_0;
+	call RESOURCE_MANAGER;
 	multipop(R1,R2,R3);
 	
 	print R3;
 	
 	multipush(R1,R2,R3);
-	R1 = 9;
+	R1 = RELEASE_TERMINAL;
 	R2 = currentPID;
-	call MOD_0;
+	call RESOURCE_MANAGER;
 	multipop(R1, R2,R3);
 	
 	breakpoint;
@@ -80,10 +80,10 @@ if(functionNum == 3) then
 endif;
 
 //Terminal Read
-if(functionNum == 4) then
+if(functionNum == TERMINAL_READ) then
 
 	multipush(R1,R2,R3);
-	R1 = 8;
+	R1 = ACQUIRE_TERMINAL;
 	R2 = currentPID;
 	call RESOURCE_MANAGER;
 	multipop(R1,R2,R3);
@@ -93,7 +93,7 @@ if(functionNum == 4) then
 	[PROCESS_TABLE + (currentPID * 16) + 4] = WAIT_TERMINAL;
 	
 	multipush(R1,R2,R3);
-	call MOD_5;
+	call SCHEDULER;
 	multipop(R1,R2,R3);
 	
 	alias physicalAddr R4;
@@ -102,9 +102,7 @@ if(functionNum == 4) then
 	
 	breakpoint;
 	return;
-	
-else
-	breakpoint;
-	return; 
-	
 endif;
+
+breakpoint;
+return;
