@@ -160,8 +160,8 @@ if (systemCallNumber == INT_DELETE) then
     counter = 8;
     while (counter <= 11) do
         if ([inodeEntry + counter] != -1) then
-            if ([BUFFER_TABLE] == [inodeEntry + counter]) then
-                [BUFFER_TABLE + 1] = 0;
+            if ([BUFFER_TABLE + ([inodeEntry + counter] % MAX_BUFFER)] == [inodeEntry + counter]) then
+                [BUFFER_TABLE + ([inodeEntry + counter] % MAX_BUFFER) + 1] = 0;
             endif;
 
             multipush (R0, R1, R2, R3, R4, R5, R10, R11);
