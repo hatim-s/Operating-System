@@ -4,14 +4,18 @@ rm child.xsm
 rm merge.xsm
 rm fork.xsm
 rm pid.xsm
-load --init ../expl/expl_progs/stage22/init.xsm
-load --idle ../expl/expl_progs/stage22/idle.xsm
-load --exec ../expl/expl_progs/stage22/ass1.xsm
-load --exec ../expl/expl_progs/stage22/parent.xsm
-load --exec ../expl/expl_progs/stage22/child.xsm
-load --exec ../expl/expl_progs/stage22/merge.xsm
-load --exec ../expl/expl_progs/stage22/fork.xsm
-load --exec ../expl/expl_progs/stage22/pid.xsm
+rm create.xsm
+rm delete.xsm
+load --init ../expl/expl_progs/stage23/init.xsm
+load --idle ../expl/expl_progs/stage23/idle.xsm
+load --exec ../expl/expl_progs/stage23/ass1.xsm
+load --exec ../expl/expl_progs/stage23/parent.xsm
+load --exec ../expl/expl_progs/stage23/child.xsm
+load --exec ../expl/expl_progs/stage23/merge.xsm
+load --exec ../expl/expl_progs/stage23/fork.xsm
+load --exec ../expl/expl_progs/stage23/pid.xsm
+load --exec ../expl/expl_progs/stage23/create.xsm
+load --exec ../expl/expl_progs/stage23/delete.xsm
 load --exhandler ../spl/spl_progs/stage23/exception.xsm
 load --int=console ../spl/spl_progs/stage23/int-console.xsm
 load --int=disk ../spl/spl_progs/stage23/int-disk.xsm

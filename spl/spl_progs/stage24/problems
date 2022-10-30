@@ -1,0 +1,21 @@
+## continue counts (timer 100):
+- page 12 -> 7
+- page 14 -> 13
+- page 16 -> 7
+- page 18 -> 9
+- page 20 -> 39
+- page 22 -> 19
+
+## problems:
+1. corrected updating of memory-free-list in get-code-page function
+2. updated disk-map-table setup in startup code
+3. updated exec system call in setting disk-map-table entries
+4. offset wrong in translating address of file-name in INT_5
+5. inode_index set wrong in MOD_3
+6. multipush written, instead of multipop in MOD_3
+7. mistyped setting up SP before ireturn in INT_5
+8. return address set wrong in INT_5
+9. didnot set up offset in INT_6
+10. register value overwritten before assigning, in MOD_3
+11. acquire buffer condition incorrect, not setting up BufferTable in startup
+12. didn't handle "file not exists" in MOD_3
