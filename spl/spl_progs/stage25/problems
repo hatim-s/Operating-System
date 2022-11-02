@@ -1,0 +1,29 @@
+## continue counts (timer 100):
+- page 10 -> 1
+- page 12 -> 7
+- page 14 -> 13
+- page 16 -> 7, 11
+- page 18 -> 9
+- page 20 -> 39
+- page 22 -> 19
+
+## problems:
+1. incorrect file size incrementing
+2. seek return value incorrect
+3. valid condition wrong in KILL_ALL and module never called
+4. disk_store parameters incorrect in INT_15
+5. open file loop incorrect in INT_5
+6. file set incorrrectly in INT_5
+7. file-status-table not updated in INT_8 (fork)
+8. wait-condition wrong in INT_11
+9. file close mistake in INT_5, CLOSE_SYS_CALL
+10. minor issue in closing a file and file-status-table entry
+11. had to invalidate all entries in file delete in INT_4
+12. not releasing buffer properly
+
+INODE_TABLE:
+7 temp1
+8 temp3
+9 temp4
+10 temp2
+11 tempb

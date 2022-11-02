@@ -1,0 +1,47 @@
+rm ass1.xsm
+rm parent.xsm
+rm child.xsm
+rm merge.xsm
+rm fork.xsm
+rm pid.xsm
+rm create.xsm
+rm delete.xsm
+rm read.xsm
+rm read2.xsm
+rm numbers.dat
+load --init ../expl/expl_progs/stage24/init.xsm
+load --idle ../expl/expl_progs/stage24/idle.xsm
+load --exec ../expl/expl_progs/stage24/ass1.xsm
+load --exec ../expl/expl_progs/stage24/parent.xsm
+load --exec ../expl/expl_progs/stage24/child.xsm
+load --exec ../expl/expl_progs/stage24/merge.xsm
+load --exec ../expl/expl_progs/stage24/fork.xsm
+load --exec ../expl/expl_progs/stage24/pid.xsm
+load --exec ../expl/expl_progs/stage24/create.xsm
+load --exec ../expl/expl_progs/stage24/read.xsm
+load --exec ../expl/expl_progs/stage24/read2.xsm
+load --exec ../expl/expl_progs/stage24/delete.xsm
+load --data ../spl/spl_progs/stage24/numbers.dat
+load --exhandler ../spl/spl_progs/stage24/exception.xsm
+load --int=console ../spl/spl_progs/stage24/int-console.xsm
+load --int=disk ../spl/spl_progs/stage24/int-disk.xsm
+load --int=timer ../spl/spl_progs/stage24/int-timer.xsm
+load --int=4 ../spl/spl_progs/stage24/int4-file.xsm
+load --int=5 ../spl/spl_progs/stage24/int5-open-close.xsm
+load --int=6 ../spl/spl_progs/stage24/int6-read.xsm
+load --int=7 ../spl/spl_progs/stage24/int7-write.xsm
+load --int=8 ../spl/spl_progs/stage24/int8-fork.xsm
+load --int=9 ../spl/spl_progs/stage24/int9-exec.xsm
+load --int=10 ../spl/spl_progs/stage24/int10-halt.xsm
+load --int=11 ../spl/spl_progs/stage24/int11-wait-signal.xsm
+load --int=13 ../spl/spl_progs/stage24/int13-sem-get-rel.xsm
+load --int=14 ../spl/spl_progs/stage24/int14-sem-lock-unlock.xsm
+load --int=15 ../spl/spl_progs/stage24/int15-shutdown.xsm
+load --module 0 ../spl/spl_progs/stage24/mod0-resource.xsm
+load --module 1 ../spl/spl_progs/stage24/mod1-process.xsm
+load --module 2 ../spl/spl_progs/stage24/mod2-memory.xsm
+load --module 3 ../spl/spl_progs/stage24/mod3-file.xsm
+load --module 4 ../spl/spl_progs/stage24/mod4-device.xsm
+load --module 5 ../spl/spl_progs/stage24/mod5-scheduler.xsm
+load --module 7 ../spl/spl_progs/stage24/mod7-boot.xsm
+load --os ../spl/spl_progs/stage24/startup.xsm
