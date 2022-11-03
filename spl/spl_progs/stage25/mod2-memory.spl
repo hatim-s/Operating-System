@@ -74,7 +74,7 @@ endif;
 
 // release block
 if (functionNum == RELEASE_BLOCK) then
-    [DISK_FREE_LIST + R1] = 0;
+    [DISK_FREE_LIST + R2] = 0;
     return;
 endif;
 
