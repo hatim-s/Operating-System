@@ -1,0 +1,84 @@
+// loading module 7 from disk to memory
+loadi(54, 67);
+loadi(55, 68);
+
+SP = 77*512 - 1;
+call BOOT_MODULE;
+
+//---------------------------------- IDLE PROGRAM --------------------------
+// loading IDLE Program from disk to memory
+loadi (69, 11);
+
+alias currentPCB R1;
+currentPCB = PROCESS_TABLE;
+[currentPCB + 1] = 0;
+[currentPCB + 3] = 1;
+[currentPCB + 4] = RUNNING;
+[currentPCB + 11] = 76;
+[currentPCB + 12] = 0;
+[currentPCB + 13] = 8*512;
+[currentPCB + 14] = PAGE_TABLE_BASE;
+[currentPCB + 15] = 10;
+
+alias currentPT R2;
+currentPT = PAGE_TABLE_BASE;
+//Library
+[currentPT + 0] = 63;
+[currentPT + 1] = "0100";
+[currentPT + 2] = 64;
+[currentPT + 3] = "0100";
+
+//Heap
+[currentPT + 4] = -1;
+[currentPT + 5] = "0110";
+[currentPT + 6] = -1;
+[currentPT + 7] = "0110";
+
+//Code
+[currentPT + 8] = 69;
+[currentPT + 9] = "0100";
+[currentPT + 10] = -1;
+[currentPT + 11] = "0000";
+[currentPT + 12] = -1;
+[currentPT + 13] = "0000";
+[currentPT + 14] = -1;
+[currentPT + 15] = "0000";
+
+//Stack
+[currentPT + 16] = 70;
+[currentPT + 17] = "0110";
+[currentPT + 18] = -1;
+[currentPT + 19] = "0000";
+
+// setting PageTableBase and PageTableLength registers
+PTBR = PAGE_TABLE_BASE;
+PTLR = 10;
+
+[70*512] = [69*512 + 1];
+SP = 8*512;
+
+[TERMINAL_STATUS_TABLE + 0] = 0;
+
+[SYSTEM_STATUS_TABLE] = 1;
+[SYSTEM_STATUS_TABLE + 1] = 0;
+[SYSTEM_STATUS_TABLE + 2] = 47;
+[SYSTEM_STATUS_TABLE + 3] = 0;
+
+[DISK_STATUS_TABLE + 0] = 0;
+
+alias counter R5;
+counter = 0;
+while (counter < MAX_FILE_NUM) do
+    [FILE_STATUS_TABLE + counter*4 + 0] = -1;
+    [FILE_STATUS_TABLE + counter*4 + 1] = -1;
+    counter = counter + 1;
+endwhile;
+
+[USER_TABLE + 2*2] = "hatimshakir";
+alias pwd R10;
+pwd = "hatimshakir";
+encrypt pwd;
+[USER_TABLE + 2*2 + 1] = pwd;
+
+breakpoint;
+ireturn;

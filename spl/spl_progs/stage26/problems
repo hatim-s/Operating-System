@@ -1,0 +1,20 @@
+## continue counts (timer 100):
+- page 10 -> 1
+- page 12 -> 7
+- page 14 -> 13
+- page 16 -> 7, 11
+- page 18 -> 9
+- page 20 -> 39
+- page 22 -> 19
+
+## problems:
+1. incorrect setup of resource table for shell
+2. was not releasing INODE in Kill All
+3. mistyped condition in write system call -- checking if the owner of file is valid or not
+
+INODE_TABLE:
+7 temp1
+8 temp3
+9 temp4
+10 temp2
+11 tempb
