@@ -1,0 +1,29 @@
+## continue counts (timer 100):
+- page 10 -> 1
+- page 12 -> 7
+- page 14 -> 13
+- page 16 -> 7, 11
+- page 18 -> 9
+- page 20 -> 39
+- page 22 -> 19
+
+## problems:
+1. loop-continue issues
+2. wrong parameters in kill all
+3. pager issues
+4. didn't push EPN in exception handler
+5. minor issue in resource_table_offset thingy
+6. was not freeing the resource table in exit process
+7. file status table initial incrementing issue
+
+INODE_TABLE:
+7 temp1
+8 temp3
+9 temp4
+10 temp2
+11 tempb
+
+
+
+load --exec ../expl/expl_progs/stage27/test11.xsm
+load --exec ../expl/expl_progs/stage27/pgm2.xsm

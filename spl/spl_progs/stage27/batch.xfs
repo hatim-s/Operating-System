@@ -1,18 +1,22 @@
-fdisk
+rm ass1.xsm
+rm ass2.xsm
+rm ass3.xsm
+rm ass4.xsm
+rm create.xsm
+rm delete.xsm
+rm fork.xsm
+rm pid.xsm
 load --init ../expl/expl_progs/stage27/init.xsm
 load --idle ../expl/expl_progs/stage27/idle.xsm
 load --shell ../expl/expl_progs/stage27/shell.xsm
+load --exec ../expl/expl_progs/stage25/ass1.xsm
+load --exec ../expl/expl_progs/stage25/ass2.xsm
+load --exec ../expl/expl_progs/stage25/ass3.xsm
+load --exec ../expl/expl_progs/stage25/ass4.xsm
 load --exec ../expl/expl_progs/stage27/create.xsm
 load --exec ../expl/expl_progs/stage27/delete.xsm
-load --exec ../expl/expl_progs/stage27/merge.xsm
-load --exec ../expl/expl_progs/stage27/m_merge.xsm
-load --exec ../expl/expl_progs/stage27/m_sort.xsm
-load --exec ../expl/expl_progs/stage27/m_store.xsm
-load --exec ../expl/expl_progs/stage27/test8.xsm
-load --exec ../expl/expl_progs/stage27/test9.xsm
-load --exec ../expl/expl_progs/stage27/pgm1.xsm
-load --exec ../expl/expl_progs/stage27/test11.xsm
-load --exec ../expl/expl_progs/stage27/pgm2.xsm
+load --exec ../expl/expl_progs/stage22/fork.xsm
+load --exec ../expl/expl_progs/stage22/pid.xsm
 load --exhandler ../spl/spl_progs/stage27/exception.xsm
 load --int=console ../spl/spl_progs/stage27/int-console.xsm
 load --int=disk ../spl/spl_progs/stage27/int-disk.xsm
