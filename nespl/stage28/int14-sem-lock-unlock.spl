@@ -1,0 +1,325 @@
+// // breakpoint;
+
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16 + 13] = SP;
+SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16 + 11] * 512 - 1;
+
+R1 = ACQUIRE_KERN_LOCK;
+call ACCESS_CONTROL;
+
+// instructionPointer+2, returnValue, Arguement3, Arguement2, Arguement1, systemCallNumber
+
+alias userSP R0;
+userSP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16 + 13];
+
+alias systemCallNumber R1;
+systemCallNumber = [[PTBR + 2*((userSP-5)/512)]*512 + (userSP-5)%512];
+
+if (systemCallNumber == INT_SEMLOCK) then
+    [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16 + 9] = 19;
+
+    alias semDescriptor R2;
+    semDescriptor = [[PTBR + 2*((userSP-4)/512)]*512 + (userSP-4)%512];
+
+    alias kernelStack R3;
+    kernelStack = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16 + 11];
+
+    if (semDescriptor < 0 || semDescriptor > 7 || [(kernelStack+1)*512 - 2*(semDescriptor+8)] != SEMAPHORE) then
+        [[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = -1;
+        [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16 + 9] = 0;
+
+        R1 = RELEASE_LOCK;
+        R2 = KERN_LOCK;
+        call ACCESS_CONTROL;
+
+        SP = userSP;
+        // // breakpoint;
+        ireturn;
+    endif;
+
+    alias semTableIndex R4; 
+    semTableIndex = [(kernelStack+1)*512 - 2*(semDescriptor+8) + 1];
+
+    while ([SEMAPHORE_TABLE + semTableIndex*4] != -1 && [SEMAPHORE_TABLE + semTableIndex*4] != [SYSTEM_STATUS_TABLE + 5*CORE + 1]) do
+        [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE+1]*16 + 4] = WAIT_SEMAPHORE;
+        [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE+1]*16 + 5] = semTableIndex;
+
+        multipush (R1, R2);
+        R1 = RELEASE_LOCK;
+        R2 = KERN_LOCK;
+        call ACCESS_CONTROL;
+        multipop  (R1, R2);
+
+        multipush (R0, R1, R2, R3, R4);
+        call SCHEDULER;
+        multipop  (R0, R1, R2, R3, R4);
+
+        multipush (R1, R2);
+        R1 = ACQUIRE_KERN_LOCK;
+        call ACCESS_CONTROL;
+        multipop  (R1, R2);
+    endwhile;
+
+    [SEMAPHORE_TABLE + semTableIndex*4] = [SYSTEM_STATUS_TABLE + 5*CORE+1];
+    [[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = 0;
+    [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE+1]*16 + 9] = 0;
+
+    R1 = RELEASE_LOCK;
+    R2 = KERN_LOCK;
+    call ACCESS_CONTROL;
+
+    SP = userSP;
+    // // breakpoint;
+    ireturn;
+endif;
+
+if (systemCallNumber == INT_SEMUNLOCK) then
+    [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16 + 9] = 20;
+
+    alias semDescriptor R2;
+    semDescriptor = [[PTBR + 2*((userSP-4)/512)]*512 + (userSP-4)%512];
+
+    alias kernelStack R3;
+    kernelStack = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16 + 11];
+
+    if (semDescriptor < 0 || semDescriptor > 7 || [(kernelStack+1)*512 - 2*(semDescriptor+8)] != SEMAPHORE) then
+        [[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = -1;
+        [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16 + 9] = 0;
+
+        R1 = RELEASE_LOCK;
+        R2 = KERN_LOCK;
+        call ACCESS_CONTROL;
+
+        SP = userSP;
+        // // breakpoint;
+        ireturn;
+    endif;
+
+    alias semTableIndex R4;
+    semTableIndex = [(kernelStack+1)*512 - 2*(semDescriptor+8) + 1];
+    if ([SEMAPHORE_TABLE + semTableIndex*4] != -1) then
+        if ([SEMAPHORE_TABLE + semTableIndex*4] != [SYSTEM_STATUS_TABLE + 5*CORE + 1]) then
+            [[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = -2;
+            [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16 + 9] = 0;
+
+            R1 = RELEASE_LOCK;
+            R2 = KERN_LOCK;
+            call ACCESS_CONTROL;
+
+            SP = userSP;
+
+            // // breakpoint;
+            ireturn;
+        endif;
+
+        [SEMAPHORE_TABLE + semDescriptor*4] = -1;
+
+        alias counter R5;
+        counter = 0;
+        while (counter < MAX_PROC_NUM) do
+            if ([PROCESS_TABLE + counter*16 + 4] == WAIT_SEMAPHORE && [PROCESS_TABLE + counter*16 + 5] == semTableIndex) then
+                [PROCESS_TABLE + counter*16 + 4] = READY;
+            endif;
+            counter = counter + 1;
+        endwhile;
+    endif;
+
+    [[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = 0;
+    [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16 + 9] = 0;
+
+    R1 = RELEASE_LOCK;
+    R2 = KERN_LOCK;
+    call ACCESS_CONTROL;
+
+    SP = userSP;
+    // // breakpoint;
+    ireturn;
+endif;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// // At the beginning of interrupt routine 14, extract the system call number from the user stack and switch to the kernel stack.
+// alias userSP R1;
+// alias systemCallNum R2;
+// alias processTableEntryAddress R3;
+// processTableEntryAddress = PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16;
+// // Save the user stack pointer in the process table
+// [processTableEntryAddress + 13]= SP;
+
+// // switch to the kernel stack
+// SP = [processTableEntryAddress + 11] * 512  - 1 ;
+// PTBR = [processTableEntryAddress + 14] ;
+
+// // call AQUIRE KERNEL LOCK
+// multipush(R1,R2,R3);
+// R1 = ACQUIRE_KERN_LOCK;
+// call ACCESS_CONTROL;
+// multipop(R1,R2,R3);
+
+// userSP = [processTableEntryAddress + 13];
+// systemCallNum = [[PTBR + 2*((userSP-5)/512)] * 512 + ((userSP-5)%512)] ;
+
+// // Change the MODE FLAG in the process tableto the system call number.
+// [processTableEntryAddress + 9] = systemCallNum;
+
+
+
+// // Extract the semaphore descriptor from the user stack. 
+// alias semId R4;
+// semId  = [[PTBR + 2*((userSP-4)/512)] * 512 + ((userSP-4)%512)] ;
+// alias perProcessTableSemaphoreEntry R5;
+// perProcessTableSemaphoreEntry = (([processTableEntryAddress + 11] + 1) * 512 ) + -16+2*semId;  
+
+
+
+// // Check validity of sem ID
+// // If Semaphore descriptor is not valid or the entry in the Per Process Resource Table is not valid, return -1. 
+// // The descriptor is invalid if not in the range 0 - 7, or if the resource identifier field of the table entry is not 1 
+// if(semId>7 || semId < 0 || [perProcessTableSemaphoreEntry] != 1 ) then
+    
+//     //  return to the user mode with -1 stored as return value indicating failure.
+//     [[PTBR + 2*((userSP-1)/512)] * 512 + ((userSP-1)%512)] = -1;
+
+//     // calling RELEASE KERNEL LOCK
+//     multipush(R3);
+//     R1 = RELEASE_LOCK;
+//     R2 = KERN_LOCK;
+//     call ACCESS_CONTROL;
+//     multipop(R3);
+
+//     // At any point of return to user, remember to reset the MODE FLAG and change the stack to user stack.
+//     [processTableEntryAddress + 9] = 0;
+//     SP = [processTableEntryAddress + 13];
+
+//     ireturn;
+// endif;
+
+
+// alias semaphoreTableIndex R6;
+// semaphoreTableIndex = [perProcessTableSemaphoreEntry+1];
+
+// // Each semaphore table entry is of size 4 words of which the last two are unused.
+// // LOCKING PID (1 word)- specifies the PID of the process which has locked the semaphore. The entry is set to -1 if the semaphore is not locked by any processes.
+// // PROCESS COUNT (1 word) - specifies the number of processes which are sharing the semaphore. A value of 0 indicates that the semaphore has not been acquired by any process.
+// // Unused (2 words)
+// alias semaphoreTableEntryAddress R7;
+// semaphoreTableEntryAddress = SEMAPHORE_TABLE + semaphoreTableIndex * 4;
+
+
+
+// if(systemCallNum == 19) then //  SemLock
+
+
+//     // while the semaphore is locked by a process other than the current process do   (Check the Locking PID field in the Semaphore table )
+//     //  Change the state of the current process to (WAIT_SEMAPHORE, Semaphore table index of the locked semaphore) 
+//     // Invoke SCHEDULER
+
+
+
+//     while([semaphoreTableEntryAddress] != -1 && [semaphoreTableEntryAddress] != [SYSTEM_STATUS_TABLE + 5*CORE + 1]) do // LOCKING PROCESS
+
+//         // Change the state of the current process to (WAIT_SEMAPHORE, Semaphore table index of the locked semaphore).
+//         [processTableEntryAddress + 4] = WAIT_SEMAPHORE;
+//         [processTableEntryAddress + 5] = semaphoreTableIndex;
+
+//         // Invoke the switch_context() function in the Scheduler Module.
+//         multipush(R0,R1,R2,R3,R4,R5,R6,R7);
+//         R1 = RELEASE_LOCK;
+// 		R2 = KERN_LOCK;
+// 		call ACCESS_CONTROL;
+
+//         call SCHEDULER;
+
+//         R1 = ACQUIRE_KERN_LOCK;
+// 		call ACCESS_CONTROL;
+//         multipop(R0,R1,R2,R3,R4,R5,R6,R7);
+//     endwhile;
+
+//     // Reaches here when the semaphore becomes free for locking 
+
+//     // Change the Locking PID to PID of the current process in the Semaphore Table .
+//     [semaphoreTableEntryAddress] = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+
+// endif;
+
+// if(systemCallNum == 20) then // SemUnLock
+
+//     if([semaphoreTableEntryAddress] != -1) then // If semaphore is locked. (Check the Locking PID in the Semaphore table )
+
+//         // If current process has not locked the semaphore, return -2.  ( The semaphore is locked by some other process.)
+//         if([semaphoreTableEntryAddress] != [SYSTEM_STATUS_TABLE + 5*CORE + 1]) then
+
+//             [[PTBR + 2*((userSP-1)/PAGE_SIZE)] * PAGE_SIZE + ((userSP-1)%PAGE_SIZE)] = -2;
+            
+//             // calling RELEASE KERNEL LOCK
+//             multipush(R3);
+//             R1 = RELEASE_LOCK;
+//             R2 = KERN_LOCK;
+//             call ACCESS_CONTROL;
+//             multipop(R3);
+
+//             [processTableEntryAddress + 9] = 0;
+//             SP = [processTableEntryAddress + 13];
+
+//             ireturn;
+//         endif;
+        
+//         // Change the Locking PID to -1 in the Semaphore Table. (Unlock the semaphore)
+//         [semaphoreTableEntryAddress] = -1;
+
+//         // Loop through the process table and change the state to (READY, _ ) for all the processes in the state (WAIT_SEMAPHORE, Semaphore table index of the locked semaphore). 
+//         alias iter R8;
+//         iter = 0;
+//         while(iter <  16) do
+//             if (([PROCESS_TABLE +16*iter+ 4] == WAIT_SEMAPHORE && [PROCESS_TABLE +16*iter+ 5] == semaphoreTableIndex )) then
+//                 [PROCESS_TABLE +16*iter+ 4] = READY;
+//             endif;
+//             iter=iter+1;
+//         endwhile;
+    
+//     endif;
+   
+// endif;
+
+// // return to the user mode with 0 stored as return value indicating success.
+// [[PTBR + 2*((userSP-1)/PAGE_SIZE)] * PAGE_SIZE + ((userSP-1)%PAGE_SIZE)] = 0;
+
+// // calling RELEASE KERNEL LOCK
+// multipush(R3);
+// R1 = RELEASE_LOCK;
+// R2 = KERN_LOCK;
+// call ACCESS_CONTROL;
+// multipop(R3);
+// // At any point of return to user, remember to reset the MODE FLAG and change the stack to user stack.
+// [processTableEntryAddress + 9] = 0;
+// SP = [processTableEntryAddress + 13];
+
+
+// ireturn;
+

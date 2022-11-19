@@ -1,0 +1,314 @@
+// // breakpoint;
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 9] = 27;
+
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 13] = SP;
+SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 11]*512 - 1;
+
+R1 = ACQUIRE_KERN_LOCK;
+call ACCESS_CONTROL;
+
+// instructionPointer+2, returnValue, Arguement3, Arguement2, Arguement1, systemCallNumber
+
+alias userSP R11;
+userSP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 13];
+
+alias currentPCB R12;
+currentPCB = PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16;
+
+alias returnAddress R13;
+returnAddress = [PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512;
+
+if ([SYSTEM_STATUS_TABLE+1] != 1) then
+    [returnAddress] = -2;
+    [currentPCB + 9] = 0;
+
+    R1 = RELEASE_LOCK;
+    R2 = KERN_LOCK;
+    call ACCESS_CONTROL;
+
+    SP = userSP;
+    // // breakpoint;
+    ireturn;
+endif;
+
+alias username R1;
+username = [[PTBR + 2*((userSP-4)/512)]*512 + (userSP-4)%512];
+
+alias userTableEntry R3;
+alias counter R5;
+counter = 0;
+while (counter < MAX_USER_NUM) do
+    if ([USER_TABLE + counter*2] == username) then
+        userTableEntry = USER_TABLE + 2*counter;
+        break;
+    endif;
+    counter = counter + 1;
+endwhile;
+
+if (counter == MAX_USER_NUM) then
+    [returnAddress] = -1;
+    [currentPCB + 9] = 0;
+
+    R1 = RELEASE_LOCK;
+    R2 = KERN_LOCK;
+    call ACCESS_CONTROL;
+
+    SP = userSP;
+    // // breakpoint;
+    ireturn;
+endif;
+
+alias password R2;
+password = [[PTBR + 2*((userSP-3)/512)]*512 + (userSP-3)%512];
+
+encrypt password;
+
+if ([userTableEntry + 1] != password) then
+    [returnAddress] = -1;
+    [currentPCB + 9] = 0;
+
+    R1 = RELEASE_LOCK;
+    R2 = KERN_LOCK;
+    call ACCESS_CONTROL;
+
+    SP = userSP;
+    // // breakpoint;
+    ireturn;
+endif;
+
+[PROCESS_TABLE + 2*16 + 3] = (userTableEntry - USER_TABLE)/2;
+[PROCESS_TABLE + 2*16 + 4] = CREATED;
+
+[currentPCB + 4] = WAIT_PROCESS;
+[currentPCB + 5] = 2;
+
+[SYSTEM_STATUS_TABLE] = (userTableEntry - USER_TABLE)/2;
+
+R1 = RELEASE_LOCK;
+R2 = KERN_LOCK;
+call ACCESS_CONTROL;
+
+multipush (R11, R12);
+call SCHEDULER;
+multipop  (R11, R12);
+
+// [returnAddress] = 0;
+[currentPCB + 9] = 0;
+
+SP = userSP;
+// // breakpoint;
+ireturn;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// // Interrupt 17 Login
+// // Arguements are User name, Password
+// // At the beginning of interrupt routine 17, extract the system call number from the user stack and switch to the kernel stack.
+// alias userSP R1;
+// alias userName R2;
+// alias processTableEntryAddress R3;
+// alias password R4;
+// alias returnAddress R5;
+// alias systemCallNum R8;
+
+// processTableEntryAddress = PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16;
+// // Save the user stack pointer in the process table
+// [processTableEntryAddress + 13]= SP;
+
+// // switch to the kernel stack
+// SP = [processTableEntryAddress + 11] * 512  - 1 ;
+// PTBR = [processTableEntryAddress + 14] ;
+
+// // call AQUIRE KERNEL LOCK
+// multipush(R1,R2,R3);
+// R1 = ACQUIRE_KERN_LOCK;
+// call ACCESS_CONTROL;
+// multipop(R1,R2,R3);
+
+// userSP = [processTableEntryAddress + 13];
+
+// systemCallNum = [[PTBR + 2*((userSP-5)/512)] * 512 + ((userSP-5)%512)] ;
+// // Change the MODE FLAG in the process tableto the system call number.
+// [processTableEntryAddress + 9] = systemCallNum;
+
+
+
+
+
+// // Extract the userName from the stack
+// userName = [[PTBR + 2*((userSP-4)/512)] * 512 + ((userSP-4)%512)] ;
+// // Extract the password
+// password  = [[PTBR + 2*((userSP-3)/512)] * 512 + ((userSP-3)%512)] ;
+
+// returnAddress = [PTBR + 2*((userSP-1)/512)] * 512 + ((userSP-1)%512) ;
+
+// if(systemCallNum == 27) then// Login
+//     // If the PID of the current process is not 1 return -2 (Not login process)
+
+//     if([SYSTEM_STATUS_TABLE + 5*CORE + 1] != 1) then
+//         [returnAddress] = -2;
+
+//         // calling RELEASE KERNEL LOCK
+//         multipush(R3);
+//         R1 = RELEASE_LOCK;
+//         R2 = KERN_LOCK;
+//         call ACCESS_CONTROL;
+//         multipop(R3);
+
+//         // At any point of return to user, remember to reset the MODE FLAG and change the stack to user stack.
+//         [processTableEntryAddress + 9] = 0;
+//         SP = [processTableEntryAddress + 13];
+
+//         ireturn;
+//     endif;
+
+//     // Get the User Table entry curresponding to the username.
+//     alias userTableEntryAddress R6;
+//     alias userId R7; // Iterator for the loop
+//     userId = 0;
+
+//     // This version of eXpOS sets MAX_USER_NUM = 16 including entries for the kernel and the root.
+//     // Each User table entry stores the user name and encrypted password of a user. Each User table entry consists of 2 words.
+//     // The entry of an User table has the following format:
+//     // USER NAME	ENCRYPTED PASSWORD
+//     // USER NAME (1 word) - Name of the user
+//     // ENCRYPTED PASSWORD (1 word) - Password of the user in an encrypted form.
+
+//     userTableEntryAddress = -1;
+//     while(userId < MAX_USER_NUM) do// 16
+//         if([USER_TABLE + userId*2] == userName) then
+//             userTableEntryAddress = USER_TABLE + userId*2;
+//             break;
+//         endif;
+
+//         userId = userId +1;
+//     endwhile;
+
+//     // If an entry does not exist, return -1.
+//     if(userTableEntryAddress == -1) then
+//         [returnAddress] = -1;
+
+//         // calling RELEASE KERNEL LOCK
+//         multipush(R3);
+//         R1 = RELEASE_LOCK;
+//         R2 = KERN_LOCK;
+//         call ACCESS_CONTROL;
+//         multipop(R3);
+
+//         // At any point of return to user, remember to reset the MODE FLAG and change the stack to user stack.
+//         [processTableEntryAddress + 9] = 0;
+//         SP = [processTableEntryAddress + 13];
+
+//         ireturn;
+//     endif;
+
+
+//     // Use the ecrypt statement to encrypt the password supplied as input.
+//     encrypt password;
+//     alias encryptedPassword R4;
+
+
+//     // If the encypted input password does not match the ENCRYPTED PASSWORD field in the user table entry, return -1.
+
+//     if(encryptedPassword != [userTableEntryAddress+1]) then
+//         [returnAddress] = -1;
+
+//         // calling RELEASE KERNEL LOCK
+//         multipush(R3);
+//         R1 = RELEASE_LOCK;
+//         R2 = KERN_LOCK;
+//         call ACCESS_CONTROL;
+//         multipop(R3);
+
+//         // At any point of return to user, remember to reset the MODE FLAG and change the stack to user stack.
+//         [processTableEntryAddress + 9] = 0;
+//         SP = [processTableEntryAddress + 13];
+
+//         ireturn;
+//     endif;
+
+
+//     // In the process table entry for the shell process, set STATE as CREATED and USERID as that of the user who is logging in.
+//     // process ID of shell is 2
+//     [PROCESS_TABLE+ 16*SHELL_PROCESS + 4] = CREATED;
+//     // The userid assigned to a user is the index of the curresponding entry in the user table. The userid of kernel is 0 and the root is 1.
+//     [PROCESS_TABLE+ 16*SHELL_PROCESS + 3] = userId;
+
+
+//     // Set the state of the current process in it's process table entry as (WAIT_PROCESS, 2) /* Login waits for shell to exit */
+//     [processTableEntryAddress + 4] = WAIT_PROCESS;
+//     [processTableEntryAddress + 5] = SHELL_PROCESS;
+
+//     // In system status table, set the CURRENT_USER_ID as that of the user who is logging in.
+//     [SYSTEM_STATUS_TABLE] = userId;
+
+//     // Invoke the context_switch() function in the Scheduler Module.
+//     multipush(R1,R2,R3,R4,R5,R6,R7); // Save the registers
+    
+//     R1 = RELEASE_LOCK;
+//     R2 = KERN_LOCK;
+//     call ACCESS_CONTROL;
+
+//     call SCHEDULER;
+
+//     R1 = ACQUIRE_KERN_LOCK;
+//     call ACCESS_CONTROL;
+    
+//     multipop(R1,R2,R3,R4,R5,R6,R7); // Restore the registers
+// endif;
+
+// // calling RELEASE KERNEL LOCK
+// multipush(R3);
+// R1 = RELEASE_LOCK;
+// R2 = KERN_LOCK;
+// call ACCESS_CONTROL;
+// multipop(R3);
+
+// // At any point of return to user, remember to reset the MODE FLAG and change the stack to user stack.
+// [processTableEntryAddress + 9] = 0;
+// SP = [processTableEntryAddress + 13];
+
+// ireturn;
+

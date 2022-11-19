@@ -1,0 +1,96 @@
+// // breakpoint;
+
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 5*CORE + 1] * 16 + 13)] = SP; 
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 5*CORE + 1] * 16 + 11)] * 512 - 1;
+
+R1 = ACQUIRE_KERN_LOCK;
+call ACCESS_CONTROL;
+
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 5*CORE + 1] * 16) + 9] = 10;
+
+if ([PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16 + 9] != 9) then
+    alias counter R5;
+    counter = 0;
+    while (counter < MAX_PROC_NUM) do
+        if ([PROCESS_TABLE + counter*16 + 4] == WAIT_PROCESS && [PROCESS_TABLE + counter*16 + 5] == [SYSTEM_STATUS_TABLE + 5*CORE + 1]) then
+            [PROCESS_TABLE + counter*16 + 4] = READY;
+        endif;
+
+        if ([PROCESS_TABLE + counter*16 + 2] == [SYSTEM_STATUS_TABLE + 5*CORE + 1]) then
+            [PROCESS_TABLE + counter*16 + 2] = -1;
+        endif;
+        counter = counter + 1;
+    endwhile;
+endif;
+
+alias userSP R0;
+userSP = SP;
+
+multipush (R0);
+R1 = EXIT_PROCESS;
+R2 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+call PROCESS_MANAGER;
+multipop  (R0);
+
+R1 = RELEASE_LOCK;
+R2 = KERN_LOCK;
+call ACCESS_CONTROL;
+
+call SCHEDULER;
+
+R1 = ACQUIRE_KERN_LOCK;
+call ACCESS_CONTROL;
+
+// // breakpoint;
+halt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// // Save user stack value for later use, set up the kernel stack
+// // Store the value of register SP in the UPTR field of the process table entry of the current process.
+// [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 5*CORE + 1]*16) + 13] = SP;
+
+// // Set the MODE FLAG in the process table to system call number of exec.
+// [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 5*CORE + 1]*16) + 9] = 10;
+
+
+// // Initialize SP (kernel stack pointer) to (user area page number)*512 -1.
+// SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 5*CORE + 1] * 16) + 11] * 512  - 1 ;
+
+
+// // call AQUIRE KERNEL LOCK
+// R1 = ACQUIRE_KERN_LOCK;
+// call ACCESS_CONTROL;
+
+// // Call the Exit Process function in process manager module to exit the current process
+
+
+
+// // Arguement is process id
+// R1 = EXIT_PROCESS; // exit function number
+// R2 = [SYSTEM_STATUS_TABLE + 5*CORE + 1]; 
+// call PROCESS_MANAGER; // Process Manager Module
+
+
+// // calling RELEASE KERNEL LOCK
+// R1 = RELEASE_LOCK;
+// R2 = KERN_LOCK;
+// call ACCESS_CONTROL;
+
+// call SCHEDULER; // call the scheduler to schedule the next process

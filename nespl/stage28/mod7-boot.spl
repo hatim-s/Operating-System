@@ -1,0 +1,696 @@
+// // breakpoint;
+
+// loading exception handler routine from disk to memory
+loadi (2, 15);
+loadi (3, 16);
+
+// loading timer interrupt
+loadi (4, 17);
+loadi (5, 18);
+
+// loading disk interrupt
+loadi (6, 19);
+loadi (7, 20);
+
+// loading console interrupt
+loadi (8, 21);
+loadi (9, 22);
+
+// loading interrupt 4 from disk to memory (file create-delete)
+loadi (10, 23);
+loadi (11, 24);
+
+// loading interrupt 5 from disk to memory (file open-close)
+loadi (12, 25);
+loadi (13, 26);
+
+// loading interrupt 6 from disk to memory (reading)
+loadi (14, 27);
+loadi (15, 28);
+
+// loading interrupt 7 from disk to memory (writing)
+loadi (16, 29);
+loadi (17, 30);
+
+// loading interrupt 8 from disk to memory (fork)
+loadi (18, 31);
+loadi (19, 32);
+
+// loading interrupt 9 from disk to memory (exec)
+loadi (20, 33);
+loadi (21, 34);
+
+// loading interrupt 10 from disk to memory (halting)
+loadi (22, 35);
+loadi (23, 36);
+
+// loading interrupt 11 from disk to memory (pid, ppid, wait, signal)
+loadi (24, 37);
+loadi (25, 38);
+
+// loading interrupt 12 from disk to memory (logout)
+loadi (26, 39);
+loadi (27, 40);
+
+// loading interrupt 13 from disk to memory (semaphore acquire-release)
+loadi (28, 41);
+loadi (29, 42);
+
+// loading interrupt 14 from disk to memory (semaphore lock-unlock)
+loadi (30, 43);
+loadi (31, 44);
+
+// loading interrupt 15 from disk to memory (shutdown)
+loadi (32, 45);
+loadi (33, 46);
+
+// loading interrupt 16 from disk to memory (uid-password)
+loadi (34, 47);
+loadi (35, 48);
+
+// loading interrupt 17 from disk to memory (login)
+loadi (36, 49);
+loadi (37, 50);
+
+// loading module 0 from disk to memory (resource manager)
+loadi (40, 53);
+loadi (41, 54);
+
+// loading module 1 from disk to memory (process manager)
+loadi (42, 55);
+loadi (43, 56);
+
+// loading module 2 from disk to memory (memory manager)
+loadi (44, 57);
+loadi (45, 58);
+
+// loading module 3 from disk to memory (files manager)
+loadi (46, 59);
+loadi (47, 60);
+
+// loading module 4 from disk to memory (device manager)
+loadi (48, 61);
+loadi (49, 62);
+
+// loading module 5 from disk to memory (scheduler)
+loadi (50, 63);
+loadi (51, 64);
+
+// loading module 6 from disk to memory (pager)
+loadi (52, 65);
+loadi (53, 66);
+
+// loading module 8 from disk to memory (access control)
+loadi (132, 516);
+loadi (133, 517);
+
+// loading the inode table from disk to memory
+loadi (59, 3);
+loadi (60, 4);
+
+// loading the disk free list
+loadi (61, 2);
+
+// setting process table entries to TERMINATED
+alias counter R5;
+counter = 0;
+while (counter < MAX_PROC_NUM) do
+    [PROCESS_TABLE + counter*16] = 0;
+    [PROCESS_TABLE + counter*16 + 4] = TERMINATED;
+    counter = counter + 1;
+endwhile;
+
+//---------------------------------- INIT PROGRAM --------------------------
+// loading INIT program from disk to memory
+loadi (65, 7);
+
+alias currentPCB R1;
+currentPCB = PROCESS_TABLE + 16;
+[currentPCB + 1] = 1;
+[currentPCB + 3] = 1;
+[currentPCB + 4] = CREATED;
+[currentPCB + 11] = 77; 
+[currentPCB + 12] = 0;
+[currentPCB + 13] = 8*512;
+[currentPCB + 14] = PAGE_TABLE_BASE+20;
+[currentPCB + 15] = 10;
+
+alias currentPT R2;
+currentPT = PAGE_TABLE_BASE + 20;
+//library
+[currentPT + 0] = 63;
+[currentPT + 1] = "0100";
+[currentPT + 2] = 64;
+[currentPT + 3] = "0100";
+
+//heap
+[currentPT + 4] = -1;
+[currentPT + 5] = "0000";
+[currentPT + 6] = -1;
+[currentPT + 7] = "0000";
+
+//Code
+[currentPT + 8] = 65;
+[currentPT + 9] = "0100";
+[currentPT + 10] = -1;
+[currentPT + 11] = "0000";
+[currentPT + 12] = -1;
+[currentPT + 13] = "0000";
+[currentPT + 14] = -1;
+[currentPT + 15] = "0000";
+
+//Stack
+[currentPT + 16] = 66;
+[currentPT + 17] = "0110";
+[currentPT + 18] = -1;
+[currentPT + 19] = "0000";
+
+//Setting top of stack to the second word in header
+[66*512] = [65*512 + 1];
+
+//---------------------------------- SHELL PROGRAM --------------------------
+loadi (67, 9);
+loadi (68, 10);
+
+currentPCB = PROCESS_TABLE + 32;
+[currentPCB + 0] = 0;
+[currentPCB + 1] = 2;
+[currentPCB + 2] = 1;
+[currentPCB + 3] = 1;
+[currentPCB + 4] = TERMINATED;
+[currentPCB + 11] = 80;
+[currentPCB + 12] = 0;
+[currentPCB + 13] = 8*512;
+[currentPCB + 14] = PAGE_TABLE_BASE+40;
+[currentPCB + 15] = 10;
+
+currentPT = PAGE_TABLE_BASE + 40;
+
+//Library
+[currentPT + 0] = 63;
+[currentPT + 1] = "0100";
+[currentPT + 2] = 64;
+[currentPT + 3] = "0100";
+
+//Heap
+[currentPT + 4] = -1;
+[currentPT + 5] = "0000";
+[currentPT + 6] = -1;
+[currentPT + 7] = "0000";
+
+//Code
+[currentPT + 8] = 67;
+[currentPT + 9] = "0100";
+[currentPT + 10] = 68;
+[currentPT + 11] = "0100";
+[currentPT + 12] = -1;
+[currentPT + 13] = "0000";
+[currentPT + 14] = -1;
+[currentPT + 15] = "0000";
+
+//Stack
+[currentPT + 16] = 78;
+[currentPT + 17] = "0110";
+[currentPT + 18] = 79;
+[currentPT + 19] = "0110";
+
+[78*512] = [67*512 + 1];
+
+counter = 0;
+while (counter < 8) do
+    [80*512 + RESOURCE_TABLE_OFFSET + 2*counter] = -1;
+    counter = counter + 1;
+endwhile;
+
+counter = 0;
+while (counter < 10) do
+    [DISK_MAP_TABLE + 20 + counter] = -1;
+    counter = counter + 1;
+endwhile;
+ 
+[DISK_MAP_TABLE + 20 + 4] = 9;
+[DISK_MAP_TABLE + 20 + 5] = 10;
+
+// ------------------------------------- PAGE-TABLE SET UP DONE -------------------------------------------------
+
+// setting up memory-free-list
+counter = 0;
+while (counter <= 84) do
+    [MEMORY_FREE_LIST + counter] = 1;
+    counter = counter + 1;
+endwhile;
+
+while (counter < 128) do
+    [MEMORY_FREE_LIST + counter] = 0;
+    counter = counter + 1;
+endwhile;
+
+[DISK_STATUS_TABLE] = 0;
+[TERMINAL_STATUS_TABLE] = 0;
+
+counter = 0;
+while (counter < MAX_SEM_COUNT) do
+    [SEMAPHORE_TABLE + counter*4] = -1;
+    [SEMAPHORE_TABLE + counter*4 + 1] = 0;
+
+    counter = counter + 1;
+endwhile;
+
+counter = 0;
+while (counter < MAX_BUFFER) do
+    [BUFFER_TABLE + counter*4 + 0] = -1;
+    [BUFFER_TABLE + counter*4 + 1] = 0;
+    [BUFFER_TABLE + counter*4 + 2] = -1;
+    counter = counter + 1;
+endwhile;
+
+counter = 0;
+while (counter < MAX_OPENFILE_NUM) do
+    [OPEN_FILE_TABLE + counter*4 + 0] = -1;
+    [OPEN_FILE_TABLE + counter*4 + 1] = 0;
+    counter = counter + 1;
+endwhile;
+
+counter = 0;
+while (counter < MAX_FILE_NUM) do
+    [FILE_STATUS_TABLE + counter*4 + 0] = -1;
+    [FILE_STATUS_TABLE + counter*4 + 1] = -1;
+    counter = counter + 1;
+endwhile;
+
+[SYSTEM_STATUS_TABLE + 2] = 43;
+[SYSTEM_STATUS_TABLE + 3] = 0;
+[SYSTEM_STATUS_TABLE + 4] = 0;
+[SYSTEM_STATUS_TABLE + 5] = 0;
+[SYSTEM_STATUS_TABLE + 7] = 0;
+
+
+[KERN_LOCK] = 0;
+[SCHED_LOCK] = 0;
+
+// // breakpoint;
+return;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// //Load the timer interrupt routine from disk blocks 17 and 18 to memory pages 4 and 5.
+// loadi(4, 17);
+// loadi(5, 18);
+
+// // Load Library Code from disk to memory
+// loadi(63,13);
+// loadi(64,14);
+
+// // Add code in the OS startup code to load INT7 from disk to memory.
+// loadi(16,29);
+// loadi(17,30);
+
+// // Change virtual memory model such that code occupies logical pages 4 and 5 and the stack lies in logical page 8. You will have to modify the user program as well as the os startup code.
+// // Load the INIT program from the disk to the memory.
+// // In Disk 65 , in memory 7
+// loadi(65,7);
+
+
+
+
+// //Load the INT10 module from the disk to the memory.
+// // 35 - 36	Interrupt 10 Routine: Exit	2 in Disk
+// // 22 - 23	Interrupt 10 Routine: Exit	11264 - 12287 1024 in Memory
+
+// loadi(22,35);
+// loadi(23,36);
+
+// // Load the exception handler routine from the disk to the memory.
+// // 5 - 16	Exception Handler	2
+// // 2 - 3	Exception Handler	1024 - 2047	1024 in Memory
+// loadi(2, 15);
+// loadi(3, 16);
+
+
+// // The eXpOS design stipulates that the scheduler is implemented as MODULE_5, and loaded in disk blocks 63 and 64 of the XFS disk. The boot module must load this module from disk to memory pages 50 and 51.
+// loadi(50,63);
+// loadi(51,64);
+
+// // Load Module 0 from disk pages 53 and 54 to memory pages 40 and 41. (Resource Manager)
+// loadi(40,53);
+// loadi(41,54);
+
+// // Load Module 4 from disk pages 61 and 62 to memory pages 48 and 49. (Device Manager)
+// loadi(48, 61);
+// loadi(49, 62);
+
+
+// // Load console interrupt handler from disk to memory.
+// loadi(8, 21);
+// loadi(9, 22);
+
+// // Load  interrupt 6 from disk to memory.
+// loadi(14 ,27);
+// loadi(15 ,28);
+
+// // Load interrupt routine 9,
+// loadi(20,33);
+// loadi(21,34);
+
+// // load  module 1, 
+// loadi(42, 55);
+// loadi(43, 56);
+
+// // load module 2 
+// loadi(44, 57 );
+// loadi(45, 58 );
+
+// // load  inode table from the disk to the memory.
+// loadi(59,3);
+// loadi(60,4);
+
+// // Load the disk interrupt routine from the disk to the memory.
+// loadi(6, 19);
+// loadi(7, 20);
+
+// // Load the Disk Free List from the disk block 2 to the memory page 61. (See disk and memory organization here.)
+// loadi(61, 2);
+
+// // Load Interrupt 8 Routine: Fork	
+// loadi(18,31);
+// loadi(19,32);
+
+// // Load interrupt routine 11
+// loadi(24,37);
+// loadi(25,38);
+
+// // Load  root file from the disk to the memory
+// loadi(62,5);
+
+// // Load interrupt routine 15 Shutdown
+// loadi(32,45);
+// loadi(33,46);
+
+// // Load interrupt routine 4  from the disk to the memory
+// loadi(10,23);
+// loadi(11,24);
+
+
+// // Load interrupt 13
+// loadi(28,41);
+// loadi(29,42);
+
+// // Load interrupt 14
+// loadi(30,43);
+// loadi(31,44);
+
+
+// // Load interrupt routine 5 from the disk to the memory. 
+// loadi(12,25);
+// loadi(13,26);
+
+// // Load module 3 from the disk to the memory. 
+// loadi(46,59);
+// loadi(47,60);
+
+// // load shell process
+// loadi(67,9);
+// loadi(68,10);
+
+// // load int 16 
+// loadi(34,47);
+// loadi(35,48);
+
+// // load int 17 login
+// loadi(36,49);
+// loadi(37,50);
+
+// // load int 12 logout 
+// loadi(26,39);
+// loadi(27,40);
+
+
+
+// //load MOD 6 Pager Module
+// loadi(52,65);
+// loadi(53,66);
+
+
+// //nexsm additions
+// //secondary bootstrap loader
+// loadi(128, 512);
+// loadi(129, 513);
+
+// //access control module(module 8)
+// loadi(132, 516);
+// loadi(133, 517);
+
+// // Setting all  processes as terminated
+// alias iter R0;
+// iter = 0;
+// alias processTableEntryAddress R1;
+// while(iter<MAX_PROC_NUM) do
+//     processTableEntryAddress = PROCESS_TABLE +16*iter;
+//     [processTableEntryAddress+ 4] = TERMINATED;
+//     // Initialize the TICK field to 0 for all the 16 process table entries.
+//     [processTableEntryAddress] = 0;
+//     iter=iter+1;
+// endwhile;
+// // ------------------------PROCESS 1 LOGIN-----------------------
+// // You need ONE page for storing the INIT program code 
+// // Login Process  PID = 1
+// PTBR = PAGE_TABLE_BASE+20; //29696+20 = 29716
+// PTLR =  10;
+
+// //Library
+// [PTBR+0] = 63;
+// [PTBR+1] = "0100";
+// [PTBR+2] = 64;
+// [PTBR+3] = "0100";
+
+// //Heap
+// [PTBR+4] = -1;
+// [PTBR+5] = "0110";
+// [PTBR+6] = -1;
+// [PTBR+7] = "0110";
+
+// //Code
+// [PTBR+8] = 65;
+// [PTBR+9] = "0100";
+// [PTBR+10] = -1;
+// [PTBR+11] = "0000";
+// [PTBR+12] = -1;
+// [PTBR+13] = "0000";
+// [PTBR+14] = -1;
+// [PTBR+15] = "0000";
+
+// //Stack
+// [PTBR+16] = 66;
+// [PTBR+17] = "0110";
+// [PTBR+18] = -1;
+// [PTBR+19] = "0000";
+
+
+
+
+
+// // PROCESS 1
+// processTableEntryAddress = PROCESS_TABLE + 16;
+
+// // we are using the first Process Table entry, the PID will be 1. eXpOS kernel is expected to store the PID in the PID field of the process table.
+// [processTableEntryAddress+ 1] = 1;
+// [processTableEntryAddress+ 4] = CREATED; 
+// // Allocate memory page 77 for kernel stack of init.
+// [processTableEntryAddress+ 11] = 77;
+// [processTableEntryAddress+ 12] = 0; // KPTR
+// [processTableEntryAddress+ 13] = 8*PAGE_SIZE; // UPTR
+// [processTableEntryAddress+ 14] = PAGE_TABLE_BASE+20;//29716
+// [processTableEntryAddress+ 15] = 10; // PTLR
+
+// // Setting top the the stack to the entry point of the code
+// [66*PAGE_SIZE] = [65*PAGE_SIZE+1];
+
+// // ------------------------PROCESS 1 LOGIN-----------------------
+
+
+// // ------------------------PROCESS 2 SHELL-----------------------
+// // SHELL PROCESS  PID = 2
+// PTBR = PAGE_TABLE_BASE+40; //29696+20 = 29716
+// PTLR =  10;
+
+// //Library
+// [PTBR+0] = 63;
+// [PTBR+1] = "0100";
+// [PTBR+2] = 64;
+// [PTBR+3] = "0100";
+
+// //Heap
+// [PTBR+4] = -1;
+// [PTBR+5] = "0000";
+// [PTBR+6] = -1;
+// [PTBR+7] = "0000";
+
+// //Code
+// [PTBR+8] = 67;
+// [PTBR+9] = "0100";
+// [PTBR+10] = 68;
+// [PTBR+11] = "0100";
+// [PTBR+12] = -1;
+// [PTBR+13] = "0000";
+// [PTBR+14] = -1;
+// [PTBR+15] = "0000";
+
+// //Stack
+// [PTBR+16] = 78;
+// [PTBR+17] = "0110";
+// [PTBR+18] = 79;
+// [PTBR+19] = "0110";
+
+
+
+// processTableEntryAddress =  PROCESS_TABLE + 16*2;
+// // PROCESS 2
+// [processTableEntryAddress+ 1] = 2;// PID
+// [processTableEntryAddress+2] = 1; // PPID
+// [processTableEntryAddress+ 4] = TERMINATED; 
+// // Allocate memory page 80 for kernel stack of init.
+// [processTableEntryAddress+ 11] = 80;
+// [processTableEntryAddress+ 12] = 0; // KPTR
+// [processTableEntryAddress+ 13] = 8*PAGE_SIZE; // UPTR
+// [processTableEntryAddress+ 14] = PAGE_TABLE_BASE+40;//29716
+// [processTableEntryAddress+ 15] = 10; // PTLR
+
+// // Setting top the the stack to the entry point of the code
+// [78*PAGE_SIZE] = [67*PAGE_SIZE+1];
+
+// // Initialize the disk map table entry of the shell process (PID = 2) as follows - Store the block numbers of the two code pages in the disk map table entry of the shell. Invalidate all other entries of the disk map table entry by storing -1.
+// // Initialize the disk map table entries for the INIT process
+// alias count R0;
+// count = 0;
+// while(count < 10)do
+//     [DISK_MAP_TABLE+2*10+count] = -1;
+//     count = count + 1;
+// endwhile;
+
+// // Initialize the per-process resource table of init process.
+// alias perProcessTableEntry R2;
+// count = 0;
+// // Setting all entries to -1
+// while(count < 16) do
+
+//     perProcessTableEntry = (([processTableEntryAddress + 11] ) * PAGE_SIZE ) +  RESOURCE_TABLE_OFFSET+2*count;
+// 	[perProcessTableEntry] = -1;
+
+// 	count = count + 1;
+// endwhile;
+
+// // code blocks
+// alias diskMaptableEntryAddress R3;
+// diskMaptableEntryAddress = DISK_MAP_TABLE + 2*10;
+// [diskMaptableEntryAddress+4] = 9;
+// [diskMaptableEntryAddress+5] = 10;
+// // ------------------------PROCESS 2 SHELL-----------------------
+
+
+// // Initialize the STATUS field in the Terminal Status tableas 0. This will indicate that the terminal is free before scheduling the first process.
+// [TERMINAL_STATUS_TABLE] = 0;
+
+// alias cutMemory R1;
+// count = 0;
+// cutMemory = 85;
+
+// while(count < cutMemory)do
+//     [MEMORY_FREE_LIST+count] = 1;
+//     [SYSTEM_STATUS_TABLE+3] = [SYSTEM_STATUS_TABLE+3]  - 1;
+//     count = count + 1;
+// endwhile; 
+
+// while(count < MAX_MEM_PAGE)do
+//     [MEMORY_FREE_LIST+count] = 0;
+//     count = count + 1;
+// endwhile; 
+
+
+// [SYSTEM_STATUS_TABLE+3] = 0; // WAIT_MEM_COUNT
+// [SYSTEM_STATUS_TABLE+2] = 128-cutMemory; // FREE_MEM_COUNT = 45
+
+// // Initialize the STATUS field in the Disk Status Table to 0.
+// [DISK_STATUS_TABLE] =0;
+
+
+
+
+
+
+
+
+// // Initialize the semaphore table by setting PROCESS COUNT to 0 and LOCKING PID to -1 for all entries.
+// count = 0;
+// while(count < MAX_SEM_COUNT) do // 32
+//     [SEMAPHORE_TABLE + 4*count] = -1; // LOCKING PID
+//     [SEMAPHORE_TABLE + 4*count+1] = 0; // PROCESS COUNT
+//     count = count + 1;
+// endwhile;
+
+
+// // Initialize the file status table by setting LOCKING PID and FILE OPEN COUNT fields of all entries to -1.
+// count = 0;
+// while(count < MAX_FILE_NUM) do // 32
+//     [FILE_STATUS_TABLE + 4*count] = -1; // LOCKING PID
+//     [FILE_STATUS_TABLE + 4*count+1] = -1; // FILE OPEN COUNT
+//     count = count + 1;
+// endwhile;
+
+// // Initialize the buffer table by setting BLOCK NUMBER and LOCKING PID fields to -1 and DIRTY BIT to 0 in all entries.
+// count = 0;
+// alias bufferTableEntry R4;
+// while(count < MAX_BUFFER) do
+//     bufferTableEntry = BUFFER_TABLE + 4*count;
+//     [bufferTableEntry] = -1; // BLOCK NUMBER
+//     [bufferTableEntry+1] = 0; // DIRTY BIT
+//     [bufferTableEntry+2] = -1; // LOCKING PID
+//     count = count + 1;
+// endwhile;
+
+
+
+
+// // Initialize all entries of the open file table by setting INODE INDEX field to -1 and OPEN INSTANCE COUNT field to 0.
+// count = 0;
+// alias openFileTableEntry R4;
+
+// while(count < MAX_OPENFILE_NUM) do
+// 	openFileTableEntry = OPEN_FILE_TABLE + 4*count;
+//     [openFileTableEntry] = -1; // INODE INDEX
+//     [openFileTableEntry+1] = 0; // OPEN INSTANCE COUNT
+//     count = count + 1;
+// endwhile;
+
+// // Initialize the SWAPPED_COUNT field to 0 and PAGING_STATUS field to 0 in the system status table to 0, as initially there are no swapped out processes.
+// [SYSTEM_STATUS_TABLE+4] = 0; // SWAPPED_COUNT
+// [SYSTEM_STATUS_TABLE+5] = 0; // PAGING_STATUS
+// return;
+
+
+

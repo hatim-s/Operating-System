@@ -1,0 +1,266 @@
+// // breakpoint;
+
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16 + 13] = SP;
+SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16 + 11]*512 - 1;
+
+R1 = ACQUIRE_KERN_LOCK;
+call ACCESS_CONTROL;
+
+alias userSP R0;
+userSP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16 + 13];
+
+// instructionPointer+2, returnValue, Arguement1, Arguement2, Arguement3, functionCode
+
+alias functionCode R1;
+functionCode = [[PTBR + 2*((userSP-5)/512)]*512 + (userSP-5)%512];
+
+if (functionCode == INT_GETPID) then
+    [[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+    [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16 + 9] = 0;
+    
+    R1 = RELEASE_LOCK;
+    R2 = KERN_LOCK;
+    call ACCESS_CONTROL;
+    
+    SP = userSP;
+    // // breakpoint;
+    ireturn;
+endif;
+
+if (functionCode == INT_GETPPID) then
+    [[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16 + 2];
+    [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16 + 9] = 0;
+    
+    R1 = RELEASE_LOCK;
+    R2 = KERN_LOCK;
+    call ACCESS_CONTROL;
+    
+    SP = userSP;
+    // // breakpoint;
+    ireturn;
+endif;
+
+if (functionCode == INT_WAIT) then
+    [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16 + 9] = 13;
+    alias processID R2;
+    processID = [[PTBR+2*((userSP-2)/512)]*512 + (userSP-2)%512];
+
+    if (processID < 0 || processID >= 16) then
+        [[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = -1;
+        [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16 + 9] = 0;
+        
+        R1 = RELEASE_LOCK;
+        R2 = KERN_LOCK;
+        call ACCESS_CONTROL;
+
+        SP = userSP;
+        // // breakpoint;
+        ireturn;
+    endif;
+
+    if (processID == [SYSTEM_STATUS_TABLE + 5*CORE+1] || [PROCESS_TABLE + 16*processID + 4] == TERMINATED) then
+        [[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = -1;
+        [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16 + 9] = 0;
+        
+        R1 = RELEASE_LOCK;
+        R2 = KERN_LOCK;
+        call ACCESS_CONTROL;
+
+        SP = userSP;
+        // // breakpoint;
+        ireturn;
+    endif;
+
+    [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1] * 16 + 4] = WAIT_PROCESS;
+    [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1] * 16 + 5] = processID;
+
+    R1 = RELEASE_LOCK;
+    R2 = KERN_LOCK;
+    call ACCESS_CONTROL;
+
+    multipush (R0, R1, R2);
+    call SCHEDULER;
+    multipop  (R0, R1, R2);
+
+    R1 = ACQUIRE_KERN_LOCK;
+    call ACCESS_CONTROL;
+
+    [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1] * 16 + 9] = 0;
+
+    R1 = RELEASE_LOCK;
+    R2 = KERN_LOCK;
+    call ACCESS_CONTROL;
+
+    SP = userSP;
+    // // breakpoint;
+    ireturn;
+endif;
+
+if (functionCode == INT_SIGNAL) then
+    [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1] * 16 + 9] = 14;
+
+    alias counter R5;
+    counter = 0;
+    while (counter < MAX_PROC_NUM) do
+        if ([PROCESS_TABLE + counter*16 + 4] == WAIT_PROCESS && [PROCESS_TABLE + counter*16 + 5] == [SYSTEM_STATUS_TABLE + 5*CORE + 1]) then
+            [PROCESS_TABLE + counter*16 + 4] = READY;
+        endif;
+        counter = counter + 1;
+    endwhile;
+
+    [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1] * 16 + 9] = 0;
+
+    R1 = RELEASE_LOCK;
+    R2 = KERN_LOCK;
+    call ACCESS_CONTROL;
+
+    SP = userSP;
+    // // breakpoint;
+    ireturn;
+endif;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// // At the beginning of interrupt routine 11, extract the system call number from the user stack and switch to the kernel stack.
+// alias userSP R1;
+// alias systemCallNum R2;
+// alias processTableEntryAddress R3;
+// processTableEntryAddress = PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16;
+// // Save the user stack pointer in the process table
+// [processTableEntryAddress + 13]= SP;
+
+// // switch to the kernel stack
+// SP = [processTableEntryAddress + 11] * 512  - 1 ;
+// PTBR = [processTableEntryAddress + 14] ;
+
+// // call AQUIRE KERNEL LOCK
+// multipush(R1,R2,R3);
+// R1 = ACQUIRE_KERN_LOCK;
+// call ACCESS_CONTROL;
+// multipop(R1,R2,R3);
+
+// userSP = [processTableEntryAddress + 13];
+// systemCallNum = [[PTBR + 2*((userSP-5)/512)] * 512 + ((userSP-5)%512)] ;
+
+// // Change the MODE FLAG in the process tableto the system call number.
+// [processTableEntryAddress + 9] = systemCallNum;
+
+// if(systemCallNum == 11) then // Getpid
+//     // Getpid system call returns the PID of the current process to the user program
+//     [[PTBR + 2*((userSP-1)/512)] * 512 + ((userSP-1)%512)] = [PROCESS_TABLE+[SYSTEM_STATUS_TABLE + 5*CORE + 1]*16+1];
+
+// endif;
+
+// if(systemCallNum == 12) then // Getppid
+//     // Getppid system call returns the PID of the parent process of the current process to the user program
+//     [[PTBR + 2*((userSP-1)/512)] * 512 + ((userSP-1)%512)] = [PROCESS_TABLE+[SYSTEM_STATUS_TABLE + 5*CORE + 1]*16+2];
+    
+// endif;
+
+// if(systemCallNum == 13) then // Wait
+//     // Extract the PID from the user stack. 
+//     alias waitPID R4;
+//     waitPID  = [[PTBR + 2*((userSP-4)/512)] * 512 + ((userSP-4)%512)] ;
+//     // A process should not wait for itself or a TERMINATED process
+//     // The argument PID should be in valid range <(MAX_PROC_NUM)
+//     if (waitPID == [SYSTEM_STATUS_TABLE + 5*CORE + 1] || [PROCESS_TABLE + waitPID*16+4] == TERMINATED || waitPID >= MAX_PROC_NUM || waitPID <0 ) then
+        
+//         // If any of the above conditons are not satisfying, return to the user mode with -1 stored as return value indicating failure.
+//         [[PTBR + 2*((userSP-1)/512)] * 512 + ((userSP-1)%512)] = -1;
+
+//         // calling RELEASE KERNEL LOCK
+//         multipush(R3);
+//         R1 = RELEASE_LOCK;
+//         R2 = KERN_LOCK;
+//         call ACCESS_CONTROL;
+//         multipop(R3);
+
+//         // At any point of return to user, remember to reset the MODE FLAG and change the stack to user stack.
+//         [processTableEntryAddress + 9] = 0;
+//         SP = [processTableEntryAddress + 13];
+
+//         ireturn;
+//     endif;
+
+//     // If all valid conditions are satisfied then proceed as follows. Change the state of the current process from RUNNING to the tuple (WAIT_PROCESS, argument PID) in the process table.
+//     [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16 + 4] = WAIT_PROCESS;
+//     [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16 + 5] = waitPID;
+
+//     multipush(R0,R1,R2, R3);
+//     R1 = RELEASE_LOCK;
+//     R2 = KERN_LOCK;
+//     call ACCESS_CONTROL;
+//     // Invoke the scheduler to schedule other processes.
+//     call SCHEDULER;
+
+//     R1 = ACQUIRE_KERN_LOCK;
+// 	call ACCESS_CONTROL;
+//     multipop(R0,R1,R2,R3);
+
+  
+//     //Store 0 in the user stack as return value and return to the calling program.
+//     [[PTBR + 2*((userSP-1)/512)] * 512 + ((userSP-1)%512)] = 0;
+
+// endif;
+
+// if(systemCallNum == 14) then // Signal
+//     // Loop through all process table entries, if there is a process with STATE as tuple (WAIT_PROCESS, current process PID) then change the STATE field to READY.
+//     alias iter R4;
+//     alias currentPID R5;
+//     currentPID = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+//     iter = 0;
+//     while(iter < MAX_PROC_NUM) do
+//         if ([PROCESS_TABLE + iter*16 + 4] == WAIT_PROCESS && [PROCESS_TABLE + iter*16 + 5] == currentPID) then
+//             [PROCESS_TABLE + iter*16 + 4] = READY;
+//             [PROCESS_TABLE + iter*16 + 5] = -1;
+//         endif;
+//         iter = iter + 1;
+//     endwhile;
+
+//     // Store 0 in the user stack as return value and return to the calling program.
+//     [[PTBR + 2*((userSP-1)/512)] * 512 + ((userSP-1)%512)] = 0;
+    
+// endif;
+
+// multipush(R3);
+// // calling RELEASE KERNEL LOCK
+// R1 = RELEASE_LOCK;
+// R2 = KERN_LOCK;
+// call ACCESS_CONTROL;
+// multipop(R3);
+
+// // At any point of return to user, remember to reset the MODE FLAG and change the stack to user stack.
+// [processTableEntryAddress + 9] = 0;
+// SP = [processTableEntryAddress + 13];
+
+// ireturn;
+

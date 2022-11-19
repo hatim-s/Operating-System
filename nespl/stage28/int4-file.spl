@@ -1,0 +1,529 @@
+// // breakpoint;
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16 + 13] = SP;
+SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16 + 11]*512 - 1;
+
+// instructionPointer+2, returnValue, Arguement3, Arguement2, Arguement1, systemCallNumber
+
+alias userSP R0;
+userSP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16 + 13];
+
+alias currentPCB R10;
+currentPCB = PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16;
+
+alias returnAddress R11;
+returnAddress = [PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512;
+
+alias currentPID R12;
+currentPID = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+
+alias systemCallNumber R1;
+systemCallNumber = [[PTBR + 2*((userSP-5)/512)]*512 + (userSP-5)%512];
+
+alias fileName R2;
+fileName = [[PTBR + 2*((userSP-4)/512)]*512 + (userSP-4)%512];
+
+if (systemCallNumber == INT_CREATE) then
+    [currentPCB + 9] = 1;
+
+    alias filePermission R3;
+    filePermission = [[PTBR + 2*((userSP-3)/512)]*512 + (userSP-3)%512];
+
+    alias counter R5;
+    counter = 0;
+    while (counter < MAX_FILE_NUM) do
+        if ([INODE_TABLE + counter*16 + 1] == fileName) then
+            [returnAddress] = 0;
+            [currentPCB + 9] = 0;
+            SP = userSP;
+            // // breakpoint;
+            ireturn;
+        endif;
+        counter = counter + 1;
+    endwhile;
+
+    alias inodeIndex R4;
+    counter = 0;
+    while (counter < MAX_FILE_NUM) do
+        if ([INODE_TABLE + counter*16 + 1] == -1) then
+            inodeIndex = counter;
+            break;
+        endif;
+        counter = counter + 1;
+    endwhile;
+
+    if (counter == MAX_FILE_NUM) then
+        [returnAddress] = -1;
+        [currentPCB + 9] = 0;        
+        SP = userSP;
+        // // breakpoint;
+        ireturn;
+    endif;
+
+    multipush (R0, R2, R3, R4, R10, R11, R12);
+    R1 = ACQUIRE_KERN_LOCK;
+    call ACCESS_CONTROL;
+    multipop  (R0, R2, R3, R4, R10, R11, R12);
+
+    alias inodeEntry R6;
+    inodeEntry = INODE_TABLE + 16*inodeIndex;
+    [inodeEntry + 0] = DATA;
+    [inodeEntry + 1] = fileName;
+    [inodeEntry + 2] = 0;
+    [inodeEntry + 3] = [currentPCB + 3];
+    [inodeEntry + 4] = currentPID;
+    if (filePermission == EXCLUSIVE) then
+        [inodeEntry + 4] = EXCLUSIVE;
+    endif;
+    
+    counter = 8;
+    while (counter < 12) do
+        [inodeEntry + counter] = -1;
+        counter = counter + 1;
+    endwhile;
+
+    alias rootFileEntry R7;
+    rootFileEntry = ROOT_FILE + inodeIndex*8;
+    [rootFileEntry + 0] = fileName;
+    [rootFileEntry + 1] = 0;
+    [rootFileEntry + 2] = DATA;
+    [rootFileEntry + 3] = [inodeEntry + 3];
+    [rootFileEntry + 4] = filePermission;
+
+    [returnAddress] = 0;
+    [currentPCB + 9] = 0;
+    
+    R1 = RELEASE_LOCK;
+    R2 = KERN_LOCK;
+    call ACCESS_CONTROL;
+    
+    SP = userSP;
+    // // breakpoint;
+    ireturn;
+endif;
+
+if (systemCallNumber == INT_DELETE) then
+    [currentPCB + 9] = 4;
+
+    alias inodeIndex R3;
+    alias counter R5;
+    counter = 0;
+    while (counter < MAX_FILE_NUM) do
+        if ([INODE_TABLE + counter*16 + 1] == fileName) then
+            inodeIndex = counter;
+            break;
+        endif;
+        counter = counter + 1;
+    endwhile;
+
+    if (counter == MAX_FILE_NUM) then
+        [returnAddress] = 0;
+        [currentPCB + 9] = 0;
+        SP = userSP;
+        // // breakpoint;
+        ireturn;
+    endif;
+
+    alias inodeEntry R4;
+    inodeEntry = INODE_TABLE + 16*inodeIndex;
+    if ([inodeEntry] != DATA) then
+        [returnAddress] = -1;
+        [currentPCB + 9] = 0;
+        SP = userSP;
+        // // breakpoint;
+        ireturn;
+    endif;
+
+    if ([inodeEntry + 4] == EXCLUSIVE && ([inodeEntry + 3] != [SYSTEM_STATUS_TABLE] && [SYSTEM_STATUS_TABLE] != ROOT)) then
+        [returnAddress] = -1;
+        [currentPCB + 9] = 0;
+        SP = userSP;
+        // // breakpoint;
+        ireturn;
+    endif;
+
+    multipush (R0, R2, R3, R4, R10, R11, R12);
+    R1 = ACQUIRE_KERN_LOCK;
+    call ACCESS_CONTROL;
+    multipop  (R0, R2, R3, R4, R10, R11, R12);
+
+    multipush (R0, R2, R3, R4, R10, R11, R12);
+    R1 = ACQUIRE_INODE;
+    R2 = inodeIndex;
+    R3 = currentPID;
+    call RESOURCE_MANAGER;
+    multipop (R0, R2, R3, R4, R10, R11, R12);
+
+    if ([FILE_STATUS_TABLE + 4*inodeIndex + 1] != -1) then
+        multipush (R0, R10, R11);
+        R1 = RELEASE_INODE;
+        R2 = inodeIndex;
+        R3 = currentPID;
+        call RESOURCE_MANAGER;
+        multipop (R0, R10, R11);
+
+        [returnAddress] = -2;
+        [currentPCB + 9] = 0;
+        
+        R1 = RELEASE_LOCK;
+        R2 = KERN_LOCK;
+        call ACCESS_CONTROL;
+        
+        SP = userSP;
+        // // breakpoint;
+        ireturn;        
+    endif;
+
+    counter = 8;
+    while (counter <= 11) do
+        if ([inodeEntry + counter] != -1) then
+            if ([BUFFER_TABLE + ([inodeEntry + counter] % MAX_BUFFER)] == [inodeEntry + counter]) then
+                [BUFFER_TABLE + ([inodeEntry + counter] % MAX_BUFFER) + 1] = 0;
+            endif;
+
+            multipush (R0, R2, R3, R4, R5, R10, R11, R12);
+            R1 = RELEASE_BLOCK;
+            R2 = [inodeEntry + counter];
+            R3 = currentPID;
+            call MEMORY_MANAGER;
+            multipop  (R0, R2, R3, R4, R5, R10, R11, R12);
+        endif;
+        counter = counter + 1;
+    endwhile;
+
+    counter = 0;
+    alias rootEntry R6;
+    rootEntry = ROOT_FILE + inodeIndex*8;
+
+    while (counter < 16) do
+        [inodeEntry + counter] = -1;
+        [rootEntry + (counter/2)] = -1;
+        counter = counter + 1;
+    endwhile;
+    [inodeEntry + 2] = 0;
+    [rootEntry + 1] = 0;
+
+    multipush (R0, R10, R11);
+    R1 = RELEASE_INODE;
+    R2 = inodeIndex;
+    R3 = currentPID;
+    call RESOURCE_MANAGER;
+    multipop (R0, R10, R11);
+
+    [returnAddress] = 0;
+    [currentPCB + 9] = 0;
+    
+    R1 = RELEASE_LOCK;
+    R2 = KERN_LOCK;
+    call ACCESS_CONTROL;
+    
+    SP = userSP;
+    // // breakpoint;
+    ireturn;
+endif;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// // At the beginning of interrupt routine 14, extract the system call number from the user stack and switch to the kernel stack.
+// alias userSP R1;
+// alias systemCallNum R2;
+// alias processTableEntryAddress R3;
+// userSP = SP;
+
+// processTableEntryAddress = PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16;
+// // Save the user stack pointer in the process table
+// [processTableEntryAddress + 13]= SP;
+// // switch to the kernel stack
+// SP = [processTableEntryAddress + 11] * PAGE_SIZE  - 1 ;
+// systemCallNum = [[PTBR + 2*((userSP - 5)/512)] * 512 + (userSP - 5)%512]; 
+
+
+// // Extract the filename from the user stack. 
+// alias fileName R4;
+// fileName = [[PTBR + 2*((userSP - 4)/512)] * 512 + (userSP - 4)%512];
+
+// // call AQUIRE KERNEL LOCK
+// multipush(R1,R2,R3,R4);
+// R1 = ACQUIRE_KERN_LOCK;
+// call ACCESS_CONTROL;
+// multipop(R1,R2,R3,R4);
+
+
+
+
+// // Change the MODE FLAG in the process tableto the system call number.
+// [processTableEntryAddress + 9] = systemCallNum;
+
+
+
+// alias returnValue R5;
+// returnValue=0;
+
+
+
+
+
+// if(systemCallNum == 1) then //  Create
+
+//     // If the file is present in the system, return 0.   /* Check the Inode Table  */ 
+//     alias iter R6;
+//     iter = 0;
+//     alias inodeTableEntryAddress R7;
+
+//     // Checking if file is already found in the Inode Table
+//     while(iter < MAX_FILE_NUM) do // 60
+//         inodeTableEntryAddress = INODE_TABLE + iter*16;
+//         if([inodeTableEntryAddress+1] == fileName) then
+
+//             //  return to the user mode with 0 stored as return value indicating failure.
+//             returnValue = 0;
+            
+//             goto KERN_IRET;
+
+
+//         endif;
+//         iter = iter + 1;
+//     endwhile;
+
+//     // Find the index of a free entry in the Inode Table. 
+//     alias freeInodeIndex R8;
+//     iter = 0;
+//     freeInodeIndex = -1;
+//     while(iter < MAX_FILE_NUM) do // 60
+//         inodeTableEntryAddress = INODE_TABLE + iter*16;
+//         if([inodeTableEntryAddress+1] == -1) then
+//             freeInodeIndex = iter;
+//             break;
+//         endif;
+//         iter = iter + 1;
+//     endwhile;
+
+//     // If no free entry found, return -1.   ( Maximum number of files reached )
+//     if(freeInodeIndex == -1) then
+//         //  return to the user mode with -1 stored as return value indicating failure.
+//         returnValue = -1;
+        
+//         goto KERN_IRET;
+
+//     endif;
+
+//     // Extract the permission from the user stack. 
+//     alias permission R9;
+// 	permission = [[PTBR + 2*((userSP - 3)/512)] * 512 + (userSP - 3)%512];
+    
+//     // In the Inode Table entry found above, set FILE NAME to the given file name, FILE SIZE to 0 and FILE TYPE to DATA.
+//     [inodeTableEntryAddress] = DATA; // File Type
+//     [inodeTableEntryAddress+1] = fileName; // File Name
+//     [inodeTableEntryAddress+2] = 0; // File Size
+//     // Set the USER ID to the USERID of the process /* See the process table for user id */
+//     [inodeTableEntryAddress+3] = [processTableEntryAddress+3];
+//     // Set the PERMISSION to the permission supplied as input.
+//     [inodeTableEntryAddress+4] = permission;
+
+//     // In the Inode Table entry, set the block numbers to -1.  ( No disk blocks are allocated to the file )
+//     [inodeTableEntryAddress+8] = -1;
+//     [inodeTableEntryAddress+9] = -1;
+//     [inodeTableEntryAddress+10] = -1;
+//     [inodeTableEntryAddress+11] = -1;
+    
+
+
+//     // In the Root file entry corresponding to the Inode Table index, 
+//     alias rootFileEntryAddress R10;
+//     rootFileEntryAddress = ROOT_FILE + freeInodeIndex*8;
+    
+
+//     // set the FILE NAME, FILE SIZE, FILE TYPE, USERNAME and PERMISSION fields.
+//     [rootFileEntryAddress] = fileName; // File Name 
+//     [rootFileEntryAddress+1] = 0; // File Size
+//     [rootFileEntryAddress+2] = DATA; // File Type  
+//     [rootFileEntryAddress+3] = [USER_TABLE + [processTableEntryAddress+3]*2]; // User Name
+//     [rootFileEntryAddress+4] = permission; // Permission 
+
+//     returnValue = 0;
+//     goto KERN_IRET;
+
+// endif;
+
+// if(systemCallNum == 4) then // Delete
+//     // Find the index of the file in the Inode Table.
+//     alias iter R6;
+//     alias inodeTableEntryAddress R7;
+//     alias inodeIndexOfFile R8;
+//     inodeIndexOfFile = -1;
+//     iter = 0;
+
+//     // Iterating through the  Inode Table to find the index of the file in the Inode table
+//     while(iter < MAX_FILE_NUM) do // 60
+//         inodeTableEntryAddress = INODE_TABLE + iter*16;
+//         if([inodeTableEntryAddress+1] == fileName) then
+//             inodeIndexOfFile = iter;
+//             break;
+//         endif;
+//         iter = iter + 1;
+//     endwhile;
+
+
+//     // If file is not present in the Inode Table, return 0. 
+//     if(inodeIndexOfFile == -1) then
+//         //  return to the user mode with 0 stored as return value indicating success.
+//         returnValue = 0;
+
+//         goto KERN_IRET;
+
+//     endif;
+
+
+//     // If the file is not a DATA file, return -1.
+//     if([inodeTableEntryAddress] != DATA ) then
+//         //  return to the user mode with -1 stored as return value indicating failure.
+//         returnValue = -1;
+        
+//         goto KERN_IRET;
+
+//     endif;
+
+
+    
+//     // When a file is created by a process using the Create system call, the process can set its permission to exclusive(value = 0)/open-access(value = 1), to restrict access permissions. 
+
+//     // If the exclusive permission is set
+//         // if the current user is not root (root user ID is 1) and the current user does not own the file 
+//             // return -1. 
+//     if([inodeTableEntryAddress+4] == EXCLUSIVE) then
+//         if( [inodeTableEntryAddress+3] != ROOT && [inodeTableEntryAddress+3] != [processTableEntryAddress+3]) then
+//             //  return to the user mode with -1 stored as return value indicating failure.
+//             returnValue = -1;
+
+//             goto KERN_IRET;
+
+//         endif;
+//     endif;
+
+
+
+//     // Acquire a lock on the file by calling the acquire_inode() function in the Resource Manager module.
+//     multipush(R1,R2,R3,R4,R5,R6,R7,R8);
+//     R1 = ACQUIRE_INODE;
+//     R2 = inodeIndexOfFile;
+//     R3 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+//     call RESOURCE_MANAGER;
+//     multipop(R1,R2,R3,R4,R5,R6,R7,R8);
+
+    
+//     // Check if the the file open count is -1 in the  File Status Table . If not, release the lock and return -2.    
+//     // File is open, cannot be deleted
+//     if([FILE_STATUS_TABLE +  inodeIndexOfFile*4 +1] != -1) then
+
+//         // release the lock and return -2
+//         returnValue = -2;
+//         multipush(R1,R2,R3,R4,R5,R6,R7,R8);
+//         R1 = RELEASE_INODE;
+//         R2 = inodeIndexOfFile;
+//         R3 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+//         call RESOURCE_MANAGER;
+//         multipop(R1,R2,R3,R4,R5,R6,R7,R8);
+        
+
+//         goto KERN_IRET;
+
+
+//     endif;
+
+
+
+//     // For each disk block allocated to the file, do {   ( Check Inode Table )
+//     //     If the disk block is loaded into a buffer, and the DIRTY BIT is set, reset the dirty bit. 
+//     //     ( Check the Buffer Table )
+//     //     Call the release_block() function in the Memory Manager module to free the disk block.        
+//     // }
+
+//     alias diskBlockNumber R9;
+//     alias bufferTableEntryAddress R10;
+//     iter = 8;
+//     while(iter < 12) do
+//         diskBlockNumber = [INODE_TABLE + inodeIndexOfFile* 16 + iter];
+//         if(diskBlockNumber != -1) then // if Disk block is alloted
+
+//             // When a process reads/writes into a file, the relevant disk block is first brought into a memory buffer by the OS and the read/write operation is performed on the buffer. The OS reserves MAX_BUFFER number of memory pages as buffers. The buffer table is a data structure that stores the information regarding the disk block stored in each buffer. The present version of eXpOS sets MAX_BUFFER = 4. Each buffer is identified by its index in the buffer table.
+//             // Since all the 4 buffer pages are shared by all the files in the file system, a buffer page may be required to be replaced by another disk block. In this case, write-back is performed only if the page is modified. The dirty bit indicates whether the page has been modified. When a disk block is required to be brought into the buffer, the buffer to which it must be loaded is identifed by the formula :
+//             // Buffer_number = Disk_block_number % MAX_BUFFER
+//             alias bufferOffset R11;
+//             bufferOffset = 0;
+//             bufferTableEntryAddress = BUFFER_TABLE + (diskBlockNumber % MAX_BUFFER) * 4;
+       
+//             if([bufferTableEntryAddress] == diskBlockNumber && [bufferTableEntryAddress+1] == 1) then // if DIRTY BIT is set
+//                 [bufferTableEntryAddress+1] = 0; // reset the dirty bit
+//             endif;
+//             bufferOffset = bufferOffset + 1;
+         
+
+//             // Call the release_block() function in the Memory Manager module to free the disk block.        
+//             multipush(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10);
+//             R1 = RELEASE_BLOCK;
+//             R2 = diskBlockNumber;
+//             R3 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+//             call MEMORY_MANAGER;
+//             multipop(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10);
+        
+//         endif;
+//         iter = iter + 1;
+//     endwhile;
+
+
+//     // Invalidate (set to -1) the Inode Table of the file.
+//     iter = 0;
+// 	while(iter<16) do
+// 		[inodeTableEntryAddress+ iter] = -1;
+// 		iter = iter + 1;
+// 	endwhile;
+
+//     // Update the Root file by invalidating the entry for the file.
+//     // Invalidating entry in root file
+// 	[ROOT_FILE + inodeIndexOfFile*8] = -1;
+
+
+//     // Release the lock on the file by calling the release_inode() function in the Resource Manager module.
+//     multipush(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10);
+//     R1 = RELEASE_INODE;
+//     R2 = inodeIndexOfFile;
+//     R3 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+//     call RESOURCE_MANAGER;
+//     multipop(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10);
+
+
+    
+//     // return to the user mode with 0 stored as return value indicating success.
+//     returnValue = 0;
+//     goto KERN_IRET;
+
+// endif;
+
+
+// KERN_IRET :
+// multipush(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10);
+// // calling RELEASE KERNEL LOCK
+// R1 = RELEASE_LOCK;
+// R2 = KERN_LOCK;
+// call ACCESS_CONTROL;
+// multipop(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10);
+
+// [[PTBR + 2*((userSP-1)/PAGE_SIZE)] * PAGE_SIZE + ((userSP-1)%PAGE_SIZE)] = returnValue;
+// // At any point of return to user, remember to reset the MODE FLAG and change the stack to user stack.
+// [processTableEntryAddress + 9] = 0;
+// SP = userSP;
+// ireturn;
+

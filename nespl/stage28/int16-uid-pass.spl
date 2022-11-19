@@ -1,0 +1,494 @@
+// // breakpoint;
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE+1]*16 + 13] = SP;
+SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE+1]+16 + 11]*512 - 1;
+
+R1 = ACQUIRE_KERN_LOCK;
+call ACCESS_CONTROL;
+
+alias userSP R11;
+userSP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE+1]*16 + 13];
+
+alias currentPCB R12;
+currentPCB = PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE+1]*16;
+
+alias returnAddress R13;
+returnAddress = [PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512;
+
+alias systemCallNumber R1;
+systemCallNumber = [[PTBR + 2*((userSP-5)/512)]*512 + (userSP-5)%512];
+
+alias username R2;
+username = [[PTBR + 2*((userSP-4)/512)]*512 + (userSP-4)%512];
+
+alias password R3;
+password = [[PTBR + 2*((userSP-3)/512)]*512 + (userSP-3)%512];
+
+if (systemCallNumber == INT_NEWUSR) then
+    [currentPCB + 9] = 22;
+
+    if ([SYSTEM_STATUS_TABLE] != 1 || [SYSTEM_STATUS_TABLE + 5*CORE+1] != 2) then
+        [returnAddress] = -2;
+        goto RETURN_TO_USER_MODE;
+    endif;
+
+    alias counter R5;
+    counter = 0;
+    while (counter < MAX_USER_NUM) do
+        if ([USER_TABLE + 2*counter] == -1) then
+            break;
+        endif;
+        if ([USER_TABLE + 2*counter] == username) then
+            [returnAddress] = -1;
+            goto RETURN_TO_USER_MODE;
+        endif;
+
+        counter = counter + 1;
+    endwhile;
+
+    if (counter == MAX_USER_NUM) then
+        [returnAddress] = -3;
+        goto RETURN_TO_USER_MODE;
+    endif;
+
+    encrypt password;
+
+    [USER_TABLE + 2*counter + 0] = username;
+    [USER_TABLE + 2*counter + 1] = password;
+
+    [returnAddress] = 0;
+    goto RETURN_TO_USER_MODE;
+endif;
+
+if (systemCallNumber == INT_REMUSR) then
+    [currentPCB + 9] = 23;
+
+    if ([SYSTEM_STATUS_TABLE] != 1 || [SYSTEM_STATUS_TABLE + 5*CORE+1] != 2) then
+        [returnAddress] = -2;
+        goto RETURN_TO_USER_MODE;
+    endif;
+
+    if (username == "root" || username == "kernel") then
+        [returnAddress] = -2;
+        goto RETURN_TO_USER_MODE;
+    endif;
+
+    alias counter R5;
+    counter = 0;
+    alias userID R4;
+    while (counter < MAX_USER_NUM) do
+        if ([USER_TABLE + 2*counter] == username) then
+            userID = counter;
+            break;
+        endif;
+        counter = counter + 1;
+    endwhile;
+
+    if (counter == MAX_USER_NUM) then
+        [returnAddress] = -1;
+        goto RETURN_TO_USER_MODE;
+    endif;  
+
+    counter = 0;
+    while (counter < MAX_FILE_NUM) do
+        if ([ROOT_FILE + counter*8 + 3] == userID) then
+            [returnAddress] = -3;
+            goto RETURN_TO_USER_MODE;
+        endif;
+        counter = counter + 1;
+    endwhile;
+
+    [USER_TABLE + 2*userID + 0] = -1;
+    [USER_TABLE + 2*userID + 1] = -1;
+
+    [returnAddress] = 0;
+    goto RETURN_TO_USER_MODE;
+endif;
+
+if (systemCallNumber == INT_SETPWD) then
+    [currentPCB + 9] = 24;
+
+    if ([SYSTEM_STATUS_TABLE + 5*CORE+1] != 2) then
+        [returnAddress] = -1;
+        goto RETURN_TO_USER_MODE;
+    endif;
+
+    alias counter R5;
+    counter = 0;
+
+    alias userID R4;
+    while (counter < MAX_USER_NUM) do
+        if ([USER_TABLE + 2*counter] == username) then
+            userID = counter;
+            break;
+        endif;
+        counter = counter + 1;
+    endwhile;
+
+    if (counter == MAX_USER_NUM) then
+        [returnAddress] = -2;
+        goto RETURN_TO_USER_MODE;
+    endif;
+
+    if ([SYSTEM_STATUS_TABLE] != counter && [SYSTEM_STATUS_TABLE] != 1) then
+        [returnAddress] = -1;
+        goto RETURN_TO_USER_MODE;
+    endif;
+
+    encrypt password;
+
+    [USER_TABLE + 2*userID + 1] = password;
+
+    [returnAddress] = 0;
+    goto RETURN_TO_USER_MODE;
+endif;
+
+if (systemCallNumber == INT_GETUNAME) then
+    [currentPCB + 9] = 25;
+
+    alias userID R4;
+    // userID = [[PTBR + 2*((userSP-4)/512)]*512 + (userSP-4)%512];
+    userID = username;
+
+    if (userID < 0 || userID >= MAX_USER_NUM) then
+        [returnAddress] = -1;
+        goto RETURN_TO_USER_MODE;
+    endif;
+
+    [returnAddress] = [USER_TABLE + 2*userID];
+    goto RETURN_TO_USER_MODE;
+endif;
+
+if (systemCallNumber == INT_GETUID) then
+    [currentPCB + 9] = 26;
+
+    // alias username R2;
+    // username = [[PTBR + 2*((userSP-4)/512)]*512 + (userSP-4)%512];
+
+    alias counter R5;
+    counter = 0;
+    while (counter < MAX_USER_NUM) do
+        if ([USER_TABLE + 2*counter] == username) then
+            [returnAddress] = counter;
+            goto RETURN_TO_USER_MODE;
+        endif;
+
+        counter = counter+1;
+    endwhile;
+
+    [returnAddress] = -1;
+    goto RETURN_TO_USER_MODE;
+endif;
+
+RETURN_TO_USER_MODE:
+[currentPCB + 9] = 0;
+
+R1 = RELEASE_LOCK;
+R2 = KERN_LOCK;
+call ACCESS_CONTROL;
+
+SP = userSP;
+
+ireturn;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// // Arguements are User name, Password
+// // At the beginning of interrupt routine 17, extract the system call number from the user stack and switch to the kernel stack.
+// alias userSP R1;
+// alias userName R2;
+// alias processTableEntryAddress R3;
+// alias returnAddress R4;
+// alias systemCallNum R5;
+
+// processTableEntryAddress = PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16;
+// // Save the user stack pointer in the process table
+// [processTableEntryAddress + 13]= SP;
+
+// // switch to the kernel stack
+// SP = [processTableEntryAddress + 11] * 512  - 1 ;
+// PTBR = [processTableEntryAddress + 14] ;
+
+// // call AQUIRE KERNEL LOCK
+// multipush(R1,R2,R3);
+// R1 = ACQUIRE_KERN_LOCK;
+// call ACCESS_CONTROL;
+// multipop(R1,R2,R3);
+
+// userSP = [processTableEntryAddress + 13];
+
+// systemCallNum = [[PTBR + 2*((userSP-5)/512)] * 512 + ((userSP-5)%512)] ;
+// // Change the MODE FLAG in the process tableto the system call number.
+// [processTableEntryAddress + 9] = systemCallNum;
+
+
+
+
+// // Extract the userName from the stack
+// userName = [[PTBR + 2*((userSP-4)/512)] * 512 + ((userSP-4)%512)] ;
+
+// returnAddress = [PTBR + 2*((userSP-1)/512)] * 512 + ((userSP-1)%512) ;
+
+
+// if(systemCallNum == 22) then// Newusr 
+//     // Arguements are User name, Password
+//     // Extract the password
+//     alias password R6;
+//     password  = [[PTBR + 2*((userSP-3)/512)] * 512 + ((userSP-3)%512)] ;
+
+//     // If the current user is not root (userId = 1), or if the current process is not the shell (PID=2), return -2.
+//     if([SYSTEM_STATUS_TABLE] !=  1 || [SYSTEM_STATUS_TABLE + 5*CORE + 1] != 2)then
+//         [returnAddress] = -2;
+
+//         goto KERN_IRET;
+
+//     endif;
+
+
+//     // Loop through the User Table and exit returning -1 if an entry for the user already exists.
+//     alias userTableEntryAddress R7;
+//     alias iter R8;
+//     userTableEntryAddress = -1;
+//     iter = 0;
+//     while(iter < MAX_USER_NUM) do
+//         if([USER_TABLE + iter*2] == userName) then
+//             [returnAddress] = -1;
+
+//             goto KERN_IRET;
+
+//         endif;
+        
+//         // Find a free entry in the User Table. 
+//         if(userTableEntryAddress ==-1 && [USER_TABLE + iter*2] == -1) then
+//             userTableEntryAddress = USER_TABLE+iter*2;
+//         endif;
+
+//         iter=iter+1;
+//     endwhile;
+
+
+//     // If no free entry is found in the user table, return -3.
+//     if(userTableEntryAddress == -1)then
+//         [returnAddress] = -3;
+
+//         goto KERN_IRET;
+
+//     endif;
+
+//     // Find the encrypted password by applying the ENCRYPT instruction on the input password.
+//     encrypt password;
+//     alias encryptedPassword R6;
+
+//     // Set the USERNAME and ENCRYPTED PASSWORD fields of the User Table entry.
+//     [userTableEntryAddress] = userName;
+//     [userTableEntryAddress+1] = encryptedPassword;
+
+//     // return 0
+//     [returnAddress] = 0;
+
+// endif;
+
+// if(systemCallNum == 23)then // Remusr
+//     // Arguements are User name
+
+//     // If the current user is not root (userId = 1), or if the current process is not the shell (PID=2), return -2.
+//     if([SYSTEM_STATUS_TABLE] != 1 || [SYSTEM_STATUS_TABLE + 5*CORE + 1] != 2) then
+//         [returnAddress] = -2;
+
+//         goto KERN_IRET;
+
+//     endif;
+
+//     // If the user to be removed is the "root" or "kernel" return -2.
+//     if(userName == "root" || userName == "kernel") then
+//         [returnAddress] = -2;
+
+//         goto KERN_IRET;
+
+//     endif;
+
+//     // Loop through the User Table and find the entry curresponding to the user.
+//     alias userTableEntryAddress R6;
+//     alias iter R7;
+//     userTableEntryAddress = -1;
+//     iter = 0;
+//     while(iter < MAX_USER_NUM) do
+//         if([USER_TABLE+iter*2] == userName) then
+//             userTableEntryAddress = USER_TABLE + iter*2;
+//             break;
+//         endif;
+//         iter = iter+1;
+//     endwhile;
+
+    
+//     // If the entry is not found, return -1.
+//     if(userTableEntryAddress == -1) then
+//         [returnAddress] = -1;
+
+//         goto KERN_IRET;
+
+//     endif;
+
+//     // Loop through the Root File and exit returning -3 if there are files of the user present on disk.
+//     iter = 0;
+
+//     while(iter < MAX_FILE_NUM) do // 60 
+
+//         if([ROOT_FILE+iter*8+3] == userName) then
+//             [returnAddress] = -3;
+
+//             goto KERN_IRET;
+
+//         endif;
+
+//         iter = iter+1;
+//     endwhile;
+
+//     // Invalidate the entry by setting the USERNAME and ENCRYPTED PASSWORD fields to -1.
+//     [userTableEntryAddress] = -1;
+//     [userTableEntryAddress+1] = -1;
+
+//     // return 0
+//     [returnAddress] = 0;
+
+// endif;
+
+// if(systemCallNum == 24) then// Setpwd
+//     // Arguements are User name, Password
+//     // Extract the password
+//     alias password R6;
+//     password  = [[PTBR + 2*((userSP-3)/512)] * 512 + ((userSP-3)%512)] ;
+
+
+//     // if the current process is not the shell (PID=2), return -1.
+//     if( [SYSTEM_STATUS_TABLE + 5*CORE + 1] != 2)then
+//         [returnAddress] = -1;
+
+//         goto KERN_IRET;
+
+//     endif;
+
+//     // Loop through the User Table and finds the entry curresponding to the user name.
+//     alias userId R7;
+//     alias userTableEntryAddress R8;
+//     alias iter R9;
+//     iter = 0;
+//     userId = -1;
+//     while(iter < MAX_USER_NUM) do
+//         userTableEntryAddress = USER_TABLE + iter *2;
+//         if([userTableEntryAddress] == userName) then
+//             userId = iter;
+//             break;
+//         endif;
+//         iter = iter +1;
+//     endwhile;
+    
+    
+
+//     // If entry is not found, return -2.
+//     if( userId == -1)then
+//         [returnAddress] = -2;
+
+//         goto KERN_IRET;
+
+//     endif;
+
+//     // If (userid of the process is not equal to the userid of the user) 
+//     if([SYSTEM_STATUS_TABLE] != userId) then
+//         //  If (the current user is not root) return -1
+//         if([SYSTEM_STATUS_TABLE] != 1) then
+//             [returnAddress] = -1;
+
+//             goto KERN_IRET;
+
+//         endif;
+
+//     endif;
+
+//     // Find the encrypted password by applying the ENCRYPT instruction on the input password.
+//     encrypt password;
+//     alias encryptedPassword R6;
+
+//     // Set the ENCRYPTED PASSWORD field in the user table entry.
+//     [userTableEntryAddress+1] = encryptedPassword;
+
+//     // return 0
+//     [returnAddress] = 0;
+
+
+// endif;
+
+// if(systemCallNum == 25) then// Getuname
+//     // Arguements are User ID
+//     alias userId R2;
+
+//     // If (UserID < 0 or UserID > 15) Return -1
+//     if(userId < 0 || userId >15) then
+//         [returnAddress] = -1;
+        
+//         goto KERN_IRET;
+
+//     endif;
+
+
+//     alias userTableEntryAddress R6;
+//     userTableEntryAddress = USER_TABLE + userId*2;
+    
+//     // If the user table entry curresponding to the userid is invalid, return -1.
+//     if([userTableEntryAddress] == -1) then
+//         [returnAddress] = -1;
+
+//         goto KERN_IRET;
+
+//     endif;
+
+//     // Fetch the user name from the User Table and return it
+//     [returnAddress] = [userTableEntryAddress];
+
+
+
+// endif;
+
+// if(systemCallNum == 26) then // Getuid
+//     // Arguements are User name
+
+//     alias userId R6;
+//     alias iter R7;
+//     userId = -1;
+//     iter = 0;
+
+//     while(iter<MAX_USER_NUM) do
+//         if([USER_TABLE+iter*2] == userName ) then
+//             userId = iter;
+//         endif;
+//         iter= iter+1;
+//     endwhile;
+
+//     [returnAddress] = userId;
+    
+// endif;
+
+// KERN_IRET:
+// // calling RELEASE KERNEL LOCK
+// multipush(R3);
+// R1 = RELEASE_LOCK;
+// R2 = KERN_LOCK;
+// call ACCESS_CONTROL;
+// multipop(R3);
+
+// // At any point of return to user, remember to reset the MODE FLAG and change the stack to user stack.
+// [processTableEntryAddress + 9] = 0;
+// SP = [processTableEntryAddress + 13];
+
+// ireturn;
+

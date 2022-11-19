@@ -1,0 +1,42 @@
+fdisk
+load --init ../expl/expl_progs/stage28/init.xsm
+load --idle ../expl/expl_progs/stage28/idle.xsm
+load --shell ../expl/expl_progs/stage28/shell.xsm
+load --exec ../expl/expl_progs/stage28/create.xsm
+load --exec ../expl/expl_progs/stage28/delete.xsm
+load --exec ../expl/expl_progs/stage28/merge.xsm
+load --exec ../expl/expl_progs/stage28/m_merge.xsm
+load --exec ../expl/expl_progs/stage28/m_sort.xsm
+load --exec ../expl/expl_progs/stage28/m_store.xsm
+load --exec ../expl/expl_progs/stage28/test8.xsm
+load --exec ../expl/expl_progs/stage28/test9.xsm
+load --exec ../expl/expl_progs/stage28/pgm1.xsm
+load --exec ../expl/expl_progs/stage28/test11.xsm
+load --exec ../expl/expl_progs/stage28/pgm2.xsm
+load --exhandler ../spl/spl_progs/stage28/exception.xsm
+load --int=console ../spl/spl_progs/stage28/int-console.xsm
+load --int=disk ../spl/spl_progs/stage28/int-disk.xsm
+load --int=timer ../spl/spl_progs/stage28/int-timer.xsm
+load --int=4 ../spl/spl_progs/stage28/int4-file.xsm
+load --int=5 ../spl/spl_progs/stage28/int5-open-close.xsm
+load --int=6 ../spl/spl_progs/stage28/int6-read.xsm
+load --int=7 ../spl/spl_progs/stage28/int7-write.xsm
+load --int=8 ../spl/spl_progs/stage28/int8-fork.xsm
+load --int=9 ../spl/spl_progs/stage28/int9-exec.xsm
+load --int=10 ../spl/spl_progs/stage28/int10-halt.xsm
+load --int=11 ../spl/spl_progs/stage28/int11-wait-signal.xsm
+load --int=12 ../spl/spl_progs/stage28/int12-logout.xsm
+load --int=13 ../spl/spl_progs/stage28/int13-sem-get-rel.xsm
+load --int=14 ../spl/spl_progs/stage28/int14-sem-lock-unlock.xsm
+load --int=15 ../spl/spl_progs/stage28/int15-shutdown.xsm
+load --int=16 ../spl/spl_progs/stage28/int16-uid-pass.xsm
+load --int=17 ../spl/spl_progs/stage28/int17-login.xsm
+load --module 0 ../spl/spl_progs/stage28/mod0-resource.xsm
+load --module 1 ../spl/spl_progs/stage28/mod1-process.xsm
+load --module 2 ../spl/spl_progs/stage28/mod2-memory.xsm
+load --module 3 ../spl/spl_progs/stage28/mod3-file.xsm
+load --module 4 ../spl/spl_progs/stage28/mod4-device.xsm
+load --module 5 ../spl/spl_progs/stage28/mod5-scheduler.xsm
+load --module 6 ../spl/spl_progs/stage28/mod6-pager.xsm
+load --module 7 ../spl/spl_progs/stage28/mod7-boot.xsm
+load --os ../spl/spl_progs/stage28/startup.xsm

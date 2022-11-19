@@ -1,0 +1,35 @@
+PTBR = PAGE_TABLE_BASE + 14*20;
+PTLR = 10;
+
+SP = 8*512;
+
+ireturn;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// PTBR = PAGE_TABLE_BASE + 20*14;
+// PTLR = 10;
+// //entry point in idle2 stack
+// [83*PAGE_SIZE] = [69*PAGE_SIZE + 1];
+
+// SP = 8*PAGE_SIZE; //  accessing stack  from the page table using logical address
+// ireturn; 
+ 
+  

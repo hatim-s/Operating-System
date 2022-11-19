@@ -1,0 +1,195 @@
+// // breakpoint;
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE+1]*16 + 9] = 28;
+
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE+1]*16 + 13] = SP;
+SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE+1]*16 + 11]*512 - 1;
+
+alias userSP R11;
+userSP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE+1]*16 + 13];
+
+alias currentPCB R12;
+currentPCB = PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE+1]*16;
+
+alias returnAddress R13;
+returnAddress = [PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512;
+
+if ([SYSTEM_STATUS_TABLE + 5*CORE+1] != SHELL_PROCESS) then
+    [returnAddress] = -1;
+    [currentPCB + 9] = 0;
+
+    R1 = RELEASE_LOCK;
+    R2 = KERN_LOCK;
+    call ACCESS_CONTROL;
+
+    SP = userSP;
+
+    // // breakpoint;
+    ireturn;
+endif;
+
+[SYSTEM_STATUS_TABLE+7] = 1;
+[PROCESS_TABLE + 2*16 + 4] = READY;
+
+multipush (R11, R12, R13);
+call SCHEDULER;
+
+R1 = ACQUIRE_KERN_LOCK;
+call ACCESS_CONTROL;
+multipop  (R11, R12, R13);
+
+multipush (R11, R12, R13);
+R1 = KILL_ALL;
+R2 = [SYSTEM_STATUS_TABLE + 5*CORE+1];
+call PROCESS_MANAGER;
+multipop  (R11, R12, R13);
+
+R1 = RELEASE_LOCK;
+R2 = KERN_LOCK;
+call ACCESS_CONTROL;
+
+[SYSTEM_STATUS_TABLE+7] = 0;
+
+[currentPCB + 4] = TERMINATED;
+
+alias stackMemoryPage R1;
+stackMemoryPage = [PTBR + 16];
+
+alias codeMemoryPage R2;
+codeMemoryPage = [PTBR + 8];
+
+[stackMemoryPage*512] = [codeMemoryPage*512 + 1];
+[currentPCB + 13] = 8*512;
+
+[PROCESS_TABLE + 1*16 + 4] = READY;
+[SYSTEM_STATUS_TABLE] = 0;
+
+call SCHEDULER;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// // Interrupt 12 Logout
+// // Arguements are none
+// // Return Value¶
+// // -1 on error, otherwise does not return
+
+// // At the beginning of interrupt routine 17, extract the system call number from the user stack and switch to the kernel stack.
+// alias userSP R1;
+// alias processTableEntryAddress R2;
+// alias returnAddress R3;
+// alias systemCallNum R4;
+
+// processTableEntryAddress = PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16;
+// // Save the user stack pointer in the process table
+// [processTableEntryAddress + 13]= SP;
+
+// userSP = [processTableEntryAddress + 13];
+// // switch to the kernel stack
+// SP = [processTableEntryAddress + 11] * 512  - 1 ;
+
+// // Extract System call number from the user stack
+// systemCallNum = [[PTBR + 2*((userSP-5)/512)] * 512 + ((userSP-5)%512)] ;
+
+// // Change the MODE FLAG in the process tableto the system call number.
+// [processTableEntryAddress + 9] = systemCallNum;
+
+
+
+// returnAddress = [PTBR + 2*((userSP-1)/512)] * 512 + ((userSP-1)%512) ;
+
+// if(systemCallNum == 28) then // Logout
+//     // If the PID of the current process is not 2 return -1 (Not shell process)
+
+//     if([SYSTEM_STATUS_TABLE + 5*CORE + 1] != 2) then
+//         [returnAddress] = -1;
+
+//         // At any point of return to user, remember to reset the MODE FLAG and change the stack to user stack.
+//         [processTableEntryAddress + 9] = 0;
+//         SP = [processTableEntryAddress + 13];
+
+
+//         ireturn;
+//     endif;
+
+//     // Setting the Logout status so that the secondary core can exit
+//     [SYSTEM_STATUS_TABLE + 7] = 1;
+
+//     // wait until the secondary core has is in the IDLE2 Process
+//     while([SYSTEM_STATUS_TABLE + 6] != IDLE2_PROCESS) do
+        
+//         multipush(R1,R2,R3,R4);
+
+
+//         // calling SCHEDULER
+//         call SCHEDULER;
+        
+//         multipop(R1,R2,R3,R4);
+
+//     endwhile;
+
+//     multipush(R1,R2,R3,R4);
+//     // call AQUIRE KERNEL LOCK
+//     R1 = ACQUIRE_KERN_LOCK;
+//     call ACCESS_CONTROL;
+
+
+//     // Kill all user processes except the shell by calling the kill_all() function in the Process Manager module.
+//     R1 = KILL_ALL;
+//     R2 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+//     call PROCESS_MANAGER;
+
+//     R1 = RELEASE_LOCK;
+//     R2 = KERN_LOCK;
+//     call ACCESS_CONTROL;
+//     multipop(R1,R2,R3,R4);
+
+//     [SYSTEM_STATUS_TABLE + 7] = 0;
+
+
+//     // Set the STATE of the current process(shell) in the process table to TERMINATED.
+//     [processTableEntryAddress + 4] = TERMINATED;
+
+//     // Shell should be set ready to run when the next user logs in. 
+//     // Obtain the entry point IP value from the header of the shell program. Place it in the beginning (logical addesss 4096) 
+//     // of the stack of the shell(current process). Reset the USERSP field of the shell to 4096.
+//     [[[processTableEntryAddress+14] + 16]*PAGE_SIZE] = [[[processTableEntryAddress+14] + 8]*PAGE_SIZE + 1];
+//     [processTableEntryAddress + 13] = 8*PAGE_SIZE;
+
+    
+//     // Wake up the Login process by changing STATE in it's process table entry to READY.
+//     [PROCESS_TABLE +16*1+ 4] = READY;
+
+//     // In system status table, reset the CURRENT_USER_ID field back to 0 (kernel).
+//     [SYSTEM_STATUS_TABLE] = KERNEL;
+
+//     // Invoke the context_switch() function in the Scheduler Module.    
+
+//     call SCHEDULER;
+
+// endif;
+
+// // At any point of return to user, remember to reset the MODE FLAG and change the stack to user stack.
+// [processTableEntryAddress + 9] = 0;
+// SP = [processTableEntryAddress + 13];
+
+
+// ireturn;
+
+

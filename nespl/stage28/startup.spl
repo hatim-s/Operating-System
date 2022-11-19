@@ -1,0 +1,294 @@
+// loading secondary bootstrap from disk to memory
+loadi (128, 512);
+// loadi (129, 513);
+
+// loading module 7 from disk to memory
+loadi(54, 67);
+loadi(55, 68);
+
+// loading the library code
+loadi (63, 13);
+loadi (64, 14);
+
+SP = 76*512 - 1;
+call BOOT_MODULE;
+
+// loading IDLE Program from disk to memory
+loadi (69, 11);
+
+alias currentPT R2;
+alias counter R5;
+counter = IDLE_PROCESS;
+while (counter < MAX_PROC_NUM) do
+    alias stackPage R1;
+    if (counter == IDLE_PROCESS) then
+        stackPage = 70;
+    else
+        if (counter == IDLE2_PROCESS) then
+            stackPage = 83;
+        else
+            stackPage = 81;
+        endif;
+    endif;
+
+    currentPT = PAGE_TABLE_BASE + counter*20;
+
+    //Library
+    [currentPT + 0] = -1;
+    [currentPT + 1] = "0000";
+    [currentPT + 2] = -1;
+    [currentPT + 3] = "0000";
+
+    //Heap
+    [currentPT + 4] = -1;
+    [currentPT + 5] = "0110";
+    [currentPT + 6] = -1;
+    [currentPT + 7] = "0110";
+
+    //Code
+    [currentPT + 8] = 69;
+    [currentPT + 9] = "0100";
+    [currentPT + 10] = -1;
+    [currentPT + 11] = "0000";
+    [currentPT + 12] = -1;
+    [currentPT + 13] = "0000";
+    [currentPT + 14] = -1;
+    [currentPT + 15] = "0000";
+
+    //Stack
+    [currentPT + 16] = stackPage;
+    [currentPT + 17] = "0110";
+    [currentPT + 18] = -1;
+    [currentPT + 19] = "0000";
+
+    if (counter == IDLE_PROCESS) then
+        counter = IDLE2_PROCESS;
+    else
+        counter = counter + 1;
+    endif;
+endwhile;
+
+[70*512] = [69*512 + 1];        // idle process
+[81*512] = [69*512 + 1];        // swapper daemon process
+[83*512] = [69*512 + 1];        // idle-2 process
+
+//---------------------------------- IDLE PROGRAM --------------------------
+alias currentPCB R1;
+currentPCB = PROCESS_TABLE;
+
+[currentPCB + 1] = IDLE_PROCESS;
+[currentPCB + 3] = 1;
+[currentPCB + 4] = RUNNING;
+[currentPCB + 11] = 76;
+[currentPCB + 12] = 0;
+[currentPCB + 13] = 8*512;
+[currentPCB + 14] = PAGE_TABLE_BASE;
+[currentPCB + 15] = 10;
+
+//---------------------------------- SWAPPER_DAEMON PROGRAM --------------------------
+currentPCB = PROCESS_TABLE + 15*16;
+
+[currentPCB + 1] = SWAPPER_DAEMON;
+[currentPCB + 3] = 1;
+[currentPCB + 4] = CREATED;
+[currentPCB + 11] = 82;
+[currentPCB + 12] = 0;
+[currentPCB + 13] = 8*512;
+[currentPCB + 14] = PAGE_TABLE_BASE + 15*20;
+[currentPCB + 15] = 10;
+
+//---------------------------------- IDLE2 PROGRAM --------------------------
+currentPCB = PROCESS_TABLE + 14*16;
+
+[currentPCB + 1] = IDLE2_PROCESS;
+[currentPCB + 3] = 1;
+[currentPCB + 4] = RUNNING;
+[currentPCB + 11] = 84;
+[currentPCB + 12] = 0;
+[currentPCB + 13] = 8*512;
+[currentPCB + 14] = PAGE_TABLE_BASE + 14*20;
+[currentPCB + 15] = 10;
+
+// setting PageTableBase and PageTableLength registers
+PTBR = PAGE_TABLE_BASE;
+PTLR = 10;
+
+SP = 8*512;
+
+[SYSTEM_STATUS_TABLE] = KERNEL;
+[SYSTEM_STATUS_TABLE + 1] = IDLE_PROCESS;
+[SYSTEM_STATUS_TABLE + 6] = IDLE2_PROCESS;
+
+// breakpoint;
+
+start;
+ireturn;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// // load mod 7 (BOOT_MODULE)
+// loadi(54,67);
+// loadi(55,68);
+
+// //  Load the idle code from disk to memory.
+// loadi(69,11);
+
+
+
+
+// // setting SP To kernel stack
+// SP = 76*PAGE_SIZE-1;
+
+// // calling boot module
+// call BOOT_MODULE;
+
+// // IDLE
+// alias iter R1;
+// iter=IDLE_PROCESS;
+// while(iter<=SWAPPER_DAEMON) do
+//     PTBR = PAGE_TABLE_BASE+iter*20; // 29696 //as PID of idle process is 0
+//     PTLR = 10;
+//     alias stackPage R2;
+//     if(iter==IDLE_PROCESS) then
+//         stackPage = 70;
+//     endif;
+//     if(iter==SWAPPER_DAEMON) then
+//         stackPage = 81;
+//     endif;
+//     if(iter==IDLE2_PROCESS) then
+//         stackPage = 83;
+//     endif;
+
+//     //Library FOR IDLE IS NOT USED
+//     [PTBR+0] = -1;
+//     [PTBR+1] = "0000";
+//     [PTBR+2] = -1;
+//     [PTBR+3] = "0000";
+
+
+//     // Heap FOR IDLE IS NOT USED
+//     [PTBR+4] = -1;
+//     [PTBR+5] = "0000";
+//     [PTBR+6] = -1;
+//     [PTBR+7] = "0000";
+
+//     // Code FOR IDLE
+//     [PTBR+8] = 69;
+//     [PTBR+9] = "0100";
+//     [PTBR+10] = -1;
+//     [PTBR+11] = "0000";
+//     [PTBR+12] = -1;
+//     [PTBR+13] = "0000";
+//     [PTBR+14] = -1;
+//     [PTBR+15] = "0000";
+
+//     // Stack FOR IDLE 
+//     [PTBR+16] = stackPage;
+//     [PTBR+17] = "0110";
+//     [PTBR+18] = -1;
+//     [PTBR+19] = "0000";
+
+//     if(iter==IDLE_PROCESS) then
+//         iter = IDLE2_PROCESS;
+//     else
+//         iter = iter+1;
+//     endif;
+
+// endwhile;
+// // PROCESS 0 IDLE
+
+// // we are using the first Process Table entry, the PID will be 0. eXpOS kernel is expected to store the PID in the PID field of the process table.
+// [PROCESS_TABLE ] = 0 ; // TICK
+// [PROCESS_TABLE +  1] = IDLE_PROCESS ; //PID
+// [PROCESS_TABLE +  3] = KERNEL; // USERID
+// [PROCESS_TABLE + 4] = RUNNING; 
+// //  Allocate memory page 76 for kernel stack of idle.
+// [PROCESS_TABLE +  11] = 76;
+// [PROCESS_TABLE + 12] = 0; // KPTR
+// [PROCESS_TABLE + 13] = 8*PAGE_SIZE; // UPTR
+// [PROCESS_TABLE + 14] = PAGE_TABLE_BASE; // PTBR 
+// [PROCESS_TABLE + 15] = 10; // PTLR
+// [70 * PAGE_SIZE] = [69*PAGE_SIZE + 1];
+
+
+
+// alias swapperDaemonProcessTableEntry R1;
+
+// swapperDaemonProcessTableEntry = PROCESS_TABLE + 16*SWAPPER_DAEMON;
+// [swapperDaemonProcessTableEntry ] = 0 ;
+// [swapperDaemonProcessTableEntry +  1] = SWAPPER_DAEMON ;// PID
+// [swapperDaemonProcessTableEntry + 3] = KERNEL; // USERID 
+// [swapperDaemonProcessTableEntry + 4] = CREATED; // STATE
+// //  Allocate memory page 82 for kernel stack of idle.
+// [swapperDaemonProcessTableEntry +  11] = 82; // USER AREA PAGE NUMBER	 
+// [swapperDaemonProcessTableEntry + 12] = 0; // KERNEL STACK POINTER (KPTR)	
+// [swapperDaemonProcessTableEntry + 13] = 8*PAGE_SIZE; // USER STACK POINTER (UPTR)	
+// [swapperDaemonProcessTableEntry + 14] = PAGE_TABLE_BASE + 20*SWAPPER_DAEMON;
+// [swapperDaemonProcessTableEntry + 15] = 10; // PTLR
+
+
+// // IDLE2 PROCESS 14
+
+// alias idle2ProcessTableEntry R1;
+
+// idle2ProcessTableEntry = PROCESS_TABLE + 16*IDLE2_PROCESS;
+// [idle2ProcessTableEntry ] = 0 ; // TICK
+// [idle2ProcessTableEntry +  1] = IDLE2_PROCESS ;// PID
+// [idle2ProcessTableEntry + 3] = KERNEL; // USERID 
+// [idle2ProcessTableEntry + 4] = RUNNING; // STATE
+// //  Allocate memory page 84 for kernel stack of idle.
+// [idle2ProcessTableEntry +  11] = 84; // USER AREA PAGE NUMBER	 
+// [idle2ProcessTableEntry + 12] = 0; // KERNEL STACK POINTER (KPTR)	
+// [idle2ProcessTableEntry + 13] = 8*PAGE_SIZE; // USER STACK POINTER (UPTR)	
+// [idle2ProcessTableEntry + 14] = PAGE_TABLE_BASE + 20*IDLE2_PROCESS;
+// [idle2ProcessTableEntry + 15] = 10; // PTLR
+// // [83 * PAGE_SIZE] = [69*PAGE_SIZE + 1]; // Idle 2 (Done in secondary bootstrap)
+
+
+// // IDLE2 PROCESS 14 END
+
+
+
+
+
+
+
+// // Setting Process ID in System Status Table to 0
+// [SYSTEM_STATUS_TABLE+1] = IDLE_PROCESS;
+// // Setting CURRENT PID 2 to Idle2
+// [SYSTEM_STATUS_TABLE+6] = IDLE2_PROCESS;
+// // Setting Logout Status to 0
+// [SYSTEM_STATUS_TABLE+7] = 0;
+
+// // The access control variables KERN_LOCK and SCHED_LOCK of the Access Lock Table must be initialized to 0.
+// [KERN_LOCK] = 0;
+// [SCHED_LOCK] = 0;
+
+
+
+
+
+
+// PTBR = PAGE_TABLE_BASE; // 29696 //as PID of idle process is 0
+// PTLR = 10;
+// [81 * PAGE_SIZE] = [69*PAGE_SIZE + 1]; // SWAPPER DAEMON
+// SP = 8*PAGE_SIZE; //  accessing stack  from the page table using logical address
+
+// // Issue the START instruction to start the secondary core into execution.
+// start;
+// ireturn; 
+ 
+  

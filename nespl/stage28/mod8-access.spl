@@ -1,0 +1,169 @@
+alias functionNum R1;
+
+if (functionNum == ACQUIRE_KERN_LOCK) then
+    if (CORE == SECONDARY_CORE) then
+        if ([SYSTEM_STATUS_TABLE+5] != 0 || [SYSTEM_STATUS_TABLE+7] != 0) then
+            [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+6]*16 + 4] = READY;
+            multipush (R1, R2);
+            call SCHEDULER;
+            multipop (R1, R2);
+        endif;
+    endif;
+
+    while (tsl(KERN_LOCK) == 1) do
+        continue;
+    endwhile;
+
+    // print "kernel locked";
+    // print CORE;
+    // print [SYSTEM_STATUS_TABLE+(5*CORE)+1];
+    // print [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+(5*CORE)+1]*16 + 9];
+
+    // // breakpoint;
+    return;
+endif;
+
+if (functionNum == ACQUIRE_SCHED_LOCK) then
+    // // breakpoint; // 67664
+
+    while (tsl(SCHED_LOCK) == 1) do
+        continue;
+    endwhile;
+    
+    // print "sched locked";
+    // print CORE;
+    // print [SYSTEM_STATUS_TABLE+(5*CORE)+1];
+
+    // // breakpoint; // 67706
+    return;
+endif;
+
+if (functionNum == ACQUIRE_GLOCK) then
+    while (tsl(GLOCK) == 1) do
+        continue;
+    endwhile;
+
+    return;
+endif;
+
+if (functionNum == RELEASE_LOCK) then
+    // if (R2 == KERN_LOCK) then
+        //     print "kern unlocked";
+    // endif;
+    // if (R2 == SCHED_LOCK) then
+    //     // breakpoint; // 67746
+    //     // print "schd unlocked";
+    // endif;
+
+    alias lockValueAddress R2;
+    [lockValueAddress] = 0;
+
+    // // breakpoint; // 67758
+    return;
+endif;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// // MOD 8 Access Control
+// alias functionNumber R1; // Function number
+
+
+
+// // Acquires KERN_LOCK which is a common access variable to be set before running any critical kernel code (except the scheduler)
+// // Before executing any kernel module/interrupt handler, KERN_LOCK is set (by invoking this function) so that the other core waits till the critical action is completed. After completing the critical kernel code, the ReleaseLock function is used to release KERN_LOCK.
+// // Called by all system calls, exception handler and timer interrupt handler.
+// if(functionNumber == ACQUIRE_KERN_LOCK) then
+//     // Arguements are NIL
+//     // Returns NIL
+
+
+//     // if (core is SECONDARY_CORE)
+//     if(CORE == SECONDARY_CORE) then
+//         // if (PAGING_STATUS or LOGOUT_STATUS is on)
+//         if([SYSTEM_STATUS_TABLE+5] == 1 || [SYSTEM_STATUS_TABLE+7] ==1) then
+//             // eXpOS design  does not permit a process to execute critical code on the secondary core when paging or logout is ongoing.
+
+//             // Set the state of current process to READY
+//             alias processTableEntryAddress R2;
+//             processTableEntryAddress = PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+6] * PT_ENTRY_SIZE);
+//             [processTableEntryAddress+4] = READY;
+
+//             //  Call the switch_context() function of the Scheduler Module.
+//             multipush(R1,R2);
+//             call SCHEDULER;
+//             multipop(R1,R2);
+
+
+//             // Note that cheduler Module requires appropriate modifications before running on the NEXSM machine 
+
+
+//         endif;
+
+//     endif;
+
+//     // Spinlock 
+//     while( tsl (KERN_LOCK) == 1) do
+//         // Wait till KERN_LOCK is released by the other core
+//         continue;
+//     endwhile;
+
+
+// endif;
+
+
+// // Acquires SCHED_LOCK which is an access variable to be set before running the scheduler. This ensures that if one core has set SCHED_LOCK, the other core will not enter the Scheduler module until the first core completes the scheduling action. 
+// // After completing the scheduling action, the ReleaseLock function is used to release SCHED_LOCK.
+// if(functionNumber == ACQUIRE_SCHED_LOCK) then
+//     // Arguements are NIL
+//     // Returns NIL
+
+
+//     while( tsl (SCHED_LOCK) == 1) do
+//         // Wait till SCHED_LOCK is released by the other core
+//         continue;
+//     endwhile;
+
+
+// endif;
+
+// if(functionNumber  == ACQUIRE_GLOCK) then
+//     // Arguements are NIL
+//     // Returns NIL
+    
+//     // Acquires GLOCK which is a general purpose lock variable that is currently left unused.
+   
+//     while(tsl(GLOCK) == 1) do
+//         continue;
+//     endwhile;
+
+// endif;
+
+// if(functionNumber == RELEASE_LOCK) then
+//     // Arguements are LockVarAddress
+//     // Returns NIL
+//     // Store 0 to the address LockVarAddress.
+//     alias lockVarAddress R2;
+//     [lockVarAddress] = 0;
+
+// endif;
+
+
+
+// return;
+
+

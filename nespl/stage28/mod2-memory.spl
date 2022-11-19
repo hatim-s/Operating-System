@@ -1,0 +1,328 @@
+// // breakpoint;
+alias functionNum R1;
+
+// get free page
+if (functionNum == GET_FREE_PAGE) then
+    [SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] + 1;
+    while ([SYSTEM_STATUS_TABLE + 2] == 0) do
+        [PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE + 5*CORE + 1] + 4] = WAIT_MEM;
+        R1 = RELEASE_LOCK;
+		R2 = KERN_LOCK;
+		call ACCESS_CONTROL;
+
+		call SCHEDULER;
+
+		R1 = ACQUIRE_KERN_LOCK;
+		call ACCESS_CONTROL;
+    endwhile;
+
+    // memory wait count
+    [SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] - 1; 
+
+    // memory free count
+    [SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1;
+
+    alias counter R5;
+    counter = 76;
+    R0 = -1;
+    while (counter < MAX_MEM_PAGE) do 
+        if ([MEMORY_FREE_LIST + counter] == 0) then
+            [MEMORY_FREE_LIST + counter] = 1;
+            R0 = counter;
+            break;
+        endif;
+        counter = counter + 1;
+    endwhile;
+
+    // // breakpoint;
+    return;
+endif;
+
+// release page
+if (functionNum == RELEASE_PAGE) then
+    alias pageNumber R2;
+    [MEMORY_FREE_LIST + pageNumber] = [MEMORY_FREE_LIST + pageNumber] - 1;
+    if ([MEMORY_FREE_LIST + pageNumber] == 0 && pageNumber >= 76) then
+        [SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] + 1;
+    endif;
+
+    alias counter R5;
+    counter = 0;
+    while (counter < 16) do
+        if ([PROCESS_TABLE + counter*16 + 4] == WAIT_MEM) then
+            [PROCESS_TABLE + counter*16 + 4] = READY;
+        endif;
+        counter = counter + 1;
+    endwhile;
+
+    // // breakpoint;
+    return;
+endif;
+
+if (functionNum == GET_FREE_BLOCK) then
+    // breakpoint;
+    alias counter R5;
+    counter = DISK_FREE_AREA;
+    while (counter < DISK_SWAP_AREA) do
+        if ([DISK_FREE_LIST + counter] == 0) then
+            [DISK_FREE_LIST + counter] = 1;
+            R0 = counter;
+
+            // breakpoint;
+            return;
+        endif;
+        counter = counter + 1;
+    endwhile;
+
+    R0 = -1;
+    // breakpoint;
+    return;
+endif;
+
+// release block
+if (functionNum == RELEASE_BLOCK) then
+    [DISK_FREE_LIST + R2] = 0;
+    return;
+endif;
+
+if (functionNum == GET_CODE_PAGE) then
+    // // breakpoint;
+    alias blockNumber R2;
+    alias i R5;
+    alias j R6;
+    i = 0;
+    j = 4;
+    while (i < MAX_PROC_NUM) do
+        while (j < 8) do
+            if ([DISK_MAP_TABLE + 10*i + j] == blockNumber && [PAGE_TABLE_BASE + 20*i + 2*j] != -1) then
+                R0 = [PAGE_TABLE_BASE + 20*i + 2*j];
+                [MEMORY_FREE_LIST + [PAGE_TABLE_BASE + 20*i + 2*j]] = [MEMORY_FREE_LIST + [PAGE_TABLE_BASE + 20*i + 2*j]] + 1;
+                // // breakpoint;
+                return;
+            endif;
+            j = j + 1;
+        endwhile;
+        j = 4;
+        i = i + 1;
+    endwhile;
+
+    multipush (R1, R2, R5, R6);
+    R1 = GET_FREE_PAGE;
+    call MEMORY_MANAGER;
+    multipop  (R1, R2, R5, R6);
+
+    alias pageNumber R0;
+    multipush (R0, R1, R2, R5, R6);
+    R1 = DISK_LOAD;
+    R3 = pageNumber;
+    R4 = blockNumber;
+    R2 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+    call DEVICE_MANAGER;
+    multipop (R0, R1, R2, R5, R6);
+
+    // // breakpoint;
+    return;
+endif;
+
+if (functionNum == GET_SWAP_BLOCK) then
+    alias counter R5;
+    counter = DISK_SWAP_AREA;
+    while (counter < DISK_SIZE) do
+        if ([DISK_FREE_LIST + counter] == 0) then
+            [DISK_FREE_LIST + counter] = 1;
+            R0 = counter;
+
+            return;
+        endif;
+        counter = counter + 1;
+    endwhile;
+
+    R0 = -1;
+    return;
+endif;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// alias functionNum R1;
+
+
+// if(functionNum == GET_FREE_PAGE) then
+//     // Arguements are NIL
+//     // Increment WAIT_MEM_COUNT field in the system status table. //Do not increment the WAIT_MEM_COUNT in busy loop (an important step )
+//     [SYSTEM_STATUS_TABLE+3] = [SYSTEM_STATUS_TABLE+3] + 1;
+//     while([SYSTEM_STATUS_TABLE+2] == 0)do
+//         // Set the state of the invoked process as WAIT_MEM.
+//         [PROCESS_TABLE+[SYSTEM_STATUS_TABLE + 5*CORE + 1]*16+4] = WAIT_MEM;
+//         multipush(R1,R2);
+
+//         R1 = RELEASE_LOCK;
+// 		R2 = KERN_LOCK;
+// 		call ACCESS_CONTROL;
+
+//         call SCHEDULER;
+
+//         R1 = ACQUIRE_KERN_LOCK;
+// 		call ACCESS_CONTROL;
+
+//         multipop(R1,R2);
+//     endwhile;
+
+//     // Decrement the WAIT_MEM_COUNT field and MEM_FREE_COUNT field in the system status table. Note the sequence - increment WAIT_MEM_COUNT, waiting for the memory, decrement WAIT_MEM_COUNT.
+//     [SYSTEM_STATUS_TABLE+2] = [SYSTEM_STATUS_TABLE+2]  - 1;
+//     [SYSTEM_STATUS_TABLE+3] = [SYSTEM_STATUS_TABLE+3]  - 1;
+
+
+//     // Find a free page using memory free list and set the corresponding entry as 1. Make sure to store the obtained free page number in R0 as return value.
+//     alias page R3;
+//     alias count R4;
+//     page = MEMORY_FREE_LIST;
+//     count = 0;
+
+//     while(count < MAX_MEM_PAGE)do
+//         page = MEMORY_FREE_LIST + count;
+//         if([page] == 0)then
+//             [page] = [page]+1;
+//             break;
+//         endif;
+//         count = count + 1;
+//     endwhile; 
+
+//     if(count >= MAX_MEM_PAGE)then
+//         count =-1;
+//     endif;
+//     R0=count;
+
+
+// endif;
+
+// if(functionNum ==  RELEASE_PAGE) then
+//     // Arguements are Page Number	
+//     alias pageNumber R2;
+//     // The Page number to be released is present in R2. Decrement the corresponding entry in the memory free list.
+//     [MEMORY_FREE_LIST+pageNumber] = [MEMORY_FREE_LIST+pageNumber]-1;
+    
+//     if([MEMORY_FREE_LIST+pageNumber] == 0) then
+//         // If that entry in the memory free list becomes zero, then the page is free. So increment the MEM_FREE_COUNT in the system status table.
+//         [SYSTEM_STATUS_TABLE+2] = [SYSTEM_STATUS_TABLE+2] + 1;
+//     endif;
+
+//     // Update the STATUS to READY for all processes (with valid PID) which have STATUS as WAIT_MEM.
+   
+//     alias count R3;
+//     count = 0;
+//     while(count < 16)do
+//         if([PROCESS_TABLE+count*16+4] == WAIT_MEM)then
+//             [PROCESS_TABLE+count*16+4] = READY;
+//         endif;
+//         count = count + 1;
+       
+//     endwhile;
+ 
+// endif;
+
+// //GET CODE PAGE
+// if(functionNum ==  GET_CODE_PAGE) then // 5
+//     // Arguements are Block Number	
+//     alias blockNumber R2;
+//     // Check the disk map table entries ofall the processes, if the given block number is present in any entry and the corresponding page table entry is valid then return the memory page number
+//     alias iter R3;
+//     iter = 0;
+//     while(iter < MAX_PROC_NUM)do
+//         alias offset R4;
+//         alias ptbr R5;
+//         ptbr = [PROCESS_TABLE + iter * 16 + 14 ];
+//         offset = 0;
+//         // check if entry is already present 
+//         while(offset < 4) do
+//             if([DISK_MAP_TABLE + iter *10 + 4 + offset] == blockNumber && [ptbr + 8 + offset*2] != -1) then
+//                 // if entry is present then return the corresponding page number from the 
+//                 R0 = [ptbr + 8 + offset*2];
+//                 [MEMORY_FREE_LIST + R0] = [MEMORY_FREE_LIST + R0] + 1;
+//                 return;
+//             endif;
+//             offset = offset + 1;
+//         endwhile;
+//         iter = iter + 1;
+//     endwhile;
+
+
+//     // if not found then get free page from memroy and return that
+//     multipush(R1,R2,R3);
+//     R1 = GET_FREE_PAGE;
+//     call MEMORY_MANAGER; // memory manager
+//     multipop(R1,R2,R3);
+//     // calling DISK_LOAD
+//     multipush(R0,R1,R2,R3);
+//     R1 = DISK_LOAD;
+//     R4 = blockNumber;
+//     R2 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+//     R3 = R0;
+//     call DEVICE_MANAGER; // DEVICE_MANAGER 
+//     multipop(R0,R1,R2,R3);
+//     // R0 contains allocated page.
+
+
+// endif;
+
+// if(functionNum ==  RELEASE_BLOCK) then // 4
+//     // Arguements are Block Number, PID	
+//     alias blockNumber R2;
+//     alias processId R3;
+
+//     [DISK_FREE_LIST + blockNumber] = 0;
+
+// endif;
+
+// if(functionNum == GET_FREE_BLOCK) then 
+//     // Arguements are NIL
+//     // loop through entries in the Disk Free List from DISK_FREE_AREA to DISK_SWAP_AREA - 1 ( User Block, not preallocated to the OS or swap area )
+//     alias iter R2;
+//     iter = DISK_FREE_AREA;
+//     // if a free entry is found in the DISK FREE LIST  set the entry as 1 and then return the corresponding block number
+//     while(iter < DISK_SWAP_AREA)do
+//         if([DISK_FREE_LIST + iter] == 0) then
+//             [DISK_FREE_LIST + iter] = 1;
+//             R0 = iter;
+//             return;
+//         endif;
+//         iter = iter + 1;
+//     endwhile;
+//     R0 = -1;
+// endif;
+
+// if(functionNum == GET_SWAP_BLOCK) then
+//     // Arguements are NIL
+//     // Returns blockNumber
+    
+//     // loop through entries in the Disk Free List from DISK_SWAP_AREA to DISK_SIZE - 1    (swap area )
+//     alias iter R2;
+//     R0 = -1;
+//     iter = 0;
+//     while(DISK_SWAP_AREA +iter < DISK_SIZE) do
+//         if([DISK_FREE_LIST+DISK_SWAP_AREA +iter] == 0) then
+//             [DISK_FREE_LIST+DISK_SWAP_AREA +iter]=1;
+//             R0 = DISK_SWAP_AREA+iter;
+//             break;
+//         endif;
+//         iter = iter +1;
+//     endwhile;
+
+// endif;
+
+// return;

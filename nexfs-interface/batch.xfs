@@ -1,0 +1,45 @@
+fdisk
+load --init ../expl/stage28/init.xsm
+load --idle ../expl/stage28/idle.xsm
+load --shell ../expl/stage28/shell.xsm
+load --exec ../expl/stage28/create.xsm
+load --exec ../expl/stage28/delete.xsm
+load --exec ../expl/stage28/merge.xsm
+load --exec ../expl/stage28/m_merge.xsm
+load --exec ../expl/stage28/m_sort.xsm
+load --exec ../expl/stage28/m_store.xsm
+load --exec ../expl/stage28/test8.xsm
+load --exec ../expl/stage28/test9.xsm
+load --exec ../expl/stage28/pgm1.xsm
+load --exec ../expl/stage28/test11.xsm
+load --exec ../expl/stage28/pgm2.xsm
+load --library ../expl/library.lib
+load --exhandler ../nespl/stage28/exception.xsm
+load --int=console ../nespl/stage28/int-console.xsm
+load --int=disk ../nespl/stage28/int-disk.xsm
+load --int=timer ../nespl/stage28/int-timer.xsm
+load --int=4 ../nespl/stage28/int4-file.xsm
+load --int=5 ../nespl/stage28/int5-open-close.xsm
+load --int=6 ../nespl/stage28/int6-read.xsm
+load --int=7 ../nespl/stage28/int7-write.xsm
+load --int=8 ../nespl/stage28/int8-fork.xsm
+load --int=9 ../nespl/stage28/int9-exec.xsm
+load --int=10 ../nespl/stage28/int10-halt.xsm
+load --int=11 ../nespl/stage28/int11-wait-signal.xsm
+load --int=12 ../nespl/stage28/int12-logout.xsm
+load --int=13 ../nespl/stage28/int13-sem-get-rel.xsm
+load --int=14 ../nespl/stage28/int14-sem-lock-unlock.xsm
+load --int=15 ../nespl/stage28/int15-shutdown.xsm
+load --int=16 ../nespl/stage28/int16-uid-pass.xsm
+load --int=17 ../nespl/stage28/int17-login.xsm
+load --module 0 ../nespl/stage28/mod0-resource.xsm
+load --module 1 ../nespl/stage28/mod1-process.xsm
+load --module 2 ../nespl/stage28/mod2-memory.xsm
+load --module 3 ../nespl/stage28/mod3-file.xsm
+load --module 4 ../nespl/stage28/mod4-device.xsm
+load --module 5 ../nespl/stage28/mod5-scheduler.xsm
+load --module 6 ../nespl/stage28/mod6-pager.xsm
+load --module 7 ../nespl/stage28/mod7-boot.xsm
+load --module 8 ../nespl/stage28/mod8-access.xsm
+load --os=primary ../nespl/stage28/startup.xsm
+load --os=secondary ../nespl/stage28/startup2.xsm

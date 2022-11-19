@@ -1,0 +1,272 @@
+// breakpoint;
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE+1]*16 + 13] = SP;
+SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE+1]*16 + 11]*512 - 1;
+
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE+1]*16 + 9] = 21;
+
+// instructionPointer+2, returnValue, Arguement3, Arguement2, Arguement1, systemCallNumber
+
+alias userSP R0;
+userSP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE+1]*16 + 13];
+
+if ([SYSTEM_STATUS_TABLE] != 1 && [SYSTEM_STATUS_TABLE + 5*CORE+1] != 2) then
+    [[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = -1;
+    [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE+1]*16 + 9] = 0;
+    SP = userSP;
+    // // breakpoint;
+    ireturn;
+endif;
+
+// breakpoint;
+multipush (R0);
+R1 = ACQUIRE_KERN_LOCK;
+call ACCESS_CONTROL;
+
+R1 = ACQUIRE_SCHED_LOCK;
+call ACCESS_CONTROL;
+multipop  (R0);
+// breakpoint;
+
+reset;
+
+// breakpoint;
+multipush (R0);
+R1 = RELEASE_LOCK;
+R2 = SCHED_LOCK;
+call ACCESS_CONTROL;
+
+R1 = RELEASE_LOCK;
+R2 = KERN_LOCK;
+call ACCESS_CONTROL;
+
+// breakpoint;
+
+R1 = KILL_ALL;
+R2 = [SYSTEM_STATUS_TABLE + 5*CORE+1];
+call PROCESS_MANAGER;
+multipop  (R0);
+
+// breakpoint;
+
+alias counter R5;
+counter = 0;
+while (counter < MAX_BUFFER) do
+    if ([BUFFER_TABLE + counter*4] != -1 && [BUFFER_TABLE + counter*4 + 1] == 1) then
+        multipush (R0, R5);
+        R1 = DISK_STORE;
+        R2 = [SYSTEM_STATUS_TABLE + 5*CORE+1];
+        R3 = BUFFER_BASE + counter;
+        R4 = [BUFFER_TABLE + counter*4];
+        call DEVICE_MANAGER;
+        multipop  (R0, R5);
+    endif;
+
+    counter = counter + 1;
+endwhile;
+
+multipush (R0);
+R1 = DISK_STORE;
+R2 = [SYSTEM_STATUS_TABLE + 5*CORE+1];
+R3 = 59;
+R4 = 3;
+call DEVICE_MANAGER;
+
+R1 = DISK_STORE;
+R2 = [SYSTEM_STATUS_TABLE + 5*CORE+1];
+R3 = 60;
+R4 = 4;
+call DEVICE_MANAGER;
+
+R1 = DISK_STORE;
+R2 = [SYSTEM_STATUS_TABLE + 5*CORE+1];
+R3 = 62;
+R4 = 5;
+call DEVICE_MANAGER;
+
+R1 = DISK_STORE;
+R2 = [SYSTEM_STATUS_TABLE + 5*CORE+1];
+R3 = 61;
+R4 = 2;
+call DEVICE_MANAGER;
+multipop  (R0);
+
+halt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// alias userSP R1;
+// alias processTableEntryAddress R3;
+// processTableEntryAddress = PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16;
+// // Save the user stack pointer in the process table
+// [processTableEntryAddress + 13]= SP;
+
+// // switch to the kernel stack
+// SP = [processTableEntryAddress + 11] * 512  - 1 ;
+
+
+
+// userSP = [processTableEntryAddress + 13];
+
+// // Change the MODE FLAG in the process tableto the system call number.
+// [processTableEntryAddress + 9] = 21;
+
+// // Shutdown system call can be invoked only from the shell process of the root user. If the current process is not shell (PID in the process table is not equal to 2) or the current user is not root user (USERID in the process table is not equal to 1) then store -1 as return value, reset the MODE FLAG, change the stack to user stack and return to user mode.
+// if ([processTableEntryAddress + 1] != SHELL_PROCESS || [processTableEntryAddress + 3] != ROOT) then
+    
+//      //  return to the user mode with -1 stored as return value indicating failure.
+//     [[PTBR + 2*((userSP-1)/512)] * 512 + ((userSP-1)%512)] = -1;
+
+//     // At any point of return to user, remember to reset the MODE FLAG and change the stack to user stack.
+//     [processTableEntryAddress + 9] = 0;
+//     SP = [processTableEntryAddress + 13];
+
+//     ireturn;
+// endif;
+
+// multipush(R1,R2,R3);
+// // call AQUIRE KERNEL LOCK
+// R1 = ACQUIRE_KERN_LOCK;
+// call ACCESS_CONTROL;
+
+// // Aquire Scheduler
+// R1 = ACQUIRE_SCHED_LOCK;
+// call ACCESS_CONTROL;
+// multipop(R1,R2,R3);
+
+// // In Shutdown system call , before calling Kill All function of the process manager module , reset the secondary core (using RESET instruction of NEXSM) and set SCHED_LOCK to 0.
+// //Disable the second core
+// reset;
+
+// multipush(R1,R2,R3);
+// // Release Scheduler
+// R1 = RELEASE_LOCK;
+// R2 = SCHED_LOCK;
+// call ACCESS_CONTROL;
+
+// // calling RELEASE KERNEL LOCK
+// R1 = RELEASE_LOCK;
+// R2 = KERN_LOCK;
+// call ACCESS_CONTROL;
+
+
+// // Invoke Kill All function of process manager module . Kill All terminates all the processes except IDLE, INIT and the process calling Shutdown.
+// R1 = KILL_ALL;
+// R2 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+// call PROCESS_MANAGER;
+
+// // Final Version Commit the inode table, root file, user table and disk free list to the disk by calling the disk_store() function in the Device Manager Module.
+
+
+// // Commit the changes made in the memory copies of the inode table (along with user table), the root file and the disk free list by storing them back to the disk invoking the Disk Store function of device manager module . 
+// // Refer to disk/memory organization for block and page numbers of these data structures.
+// // DISK_STORE arguements PID, Page Number, Block Number	
+
+
+// //inode table
+// R1 = DISK_STORE;
+// R2 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+// R3 = 59;
+// R4 = 3;
+// call DEVICE_MANAGER;
+
+// // inode table + user table
+// R1 = DISK_STORE;
+// R2 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+// R3 = 60;
+// R4 = 4;
+// call DEVICE_MANAGER;
+
+
+// //root file
+
+// R1 = DISK_STORE;
+// R2 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+// R3 = 62;
+// R4 = 5;
+// call DEVICE_MANAGER;
+
+
+
+// //disk free list
+// R1 = DISK_STORE;
+// R2 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+// R3 = 61;
+// R4 = 2;
+// call DEVICE_MANAGER;
+
+
+
+
+
+// multipop(R1,R2,R3);
+
+
+// // Loop through the Buffer Table
+// //     If the buffer is dirty
+// //        Commit changes to the disk by calling the disk_store() function in the Device Manager module.
+
+// alias bufferTableEntryAddress R4;
+// alias bufferNumber R5;
+// bufferNumber = 0;
+// while (bufferNumber < MAX_BUFFER) do
+//     bufferTableEntryAddress = BUFFER_TABLE + bufferNumber * 4;
+    
+//     // if the buffer is dirty
+    
+//     if ([bufferTableEntryAddress + 1] == 1) then
+//         multipush(R1,R2,R3,R4,R5);
+//         // Arguements are PID, Page Number, Block Number	
+//         R1 = DISK_STORE;
+//         R2 = [SYSTEM_STATUS_TABLE + 5*CORE + 1]; //  PID
+//         R3 = BUFFER_BASE + bufferNumber; // Page Number
+//         R4 = [bufferTableEntryAddress]; // Block Number
+//         call DEVICE_MANAGER;
+//         multipop(R1,R2,R3,R4,R5);
+
+//         // Mark the buffer as clean in the corresponding buffer table entry (reset dirty bit)
+//         [bufferTableEntryAddress + 1] = 0;
+//     endif;
+//     bufferNumber = bufferNumber + 1;
+// endwhile;
+
+
+// // Finally, halt the system using the SPL statement halt.
+// halt;
+
+
+

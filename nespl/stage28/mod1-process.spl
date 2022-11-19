@@ -1,0 +1,495 @@
+// // breakpoint;
+alias functionNum R1;
+
+// get PCB entry
+if (functionNum == GET_PCB_ENTRY) then
+    alias counter R5;
+    counter = SHELL_PROCESS+1;
+    while (counter < IDLE2_PROCESS) do
+        if ([PROCESS_TABLE + counter*16 + 4] == TERMINATED) then
+            R0 = counter;
+            [PROCESS_TABLE + counter*16 + 4] = ALLOCATED;
+            [PROCESS_TABLE + counter*16 + 14] = PAGE_TABLE_BASE + counter*20;
+            [PROCESS_TABLE + counter*16 + 15] = 10;
+            
+            // // breakpoint;
+            return;
+        endif;
+        counter = counter + 1;
+    endwhile;
+
+    R0 = -1;
+    // // breakpoint;
+    return;
+endif;
+
+// free user area page
+if (functionNum == FREE_USER_AREA_PAGE) then
+    alias currentPID R2;
+    alias kernelStack R4;
+    kernelStack = [PROCESS_TABLE + currentPID*16 + 11];
+
+    alias counter R5;
+    counter = 0;
+    while (counter < 8) do
+        if ([kernelStack*512 + RESOURCE_TABLE_OFFSET + counter*2] == SEMAPHORE) then
+            multipush (R1, R2, R4, R5);
+            R1 = RELEASE_SEMAPHORE;
+            R3 = currentPID;
+            R2 = [kernelStack*512 + RESOURCE_TABLE_OFFSET + counter*2 + 1];
+            call RESOURCE_MANAGER;
+            multipop  (R1, R2, R4, R5);
+        endif;
+
+        if ([kernelStack*512 + RESOURCE_TABLE_OFFSET + counter*2] == FILE) then
+            multipush (R1, R2, R4, R5);
+            R1 = CLOSE;
+            R2 = [kernelStack*512 + RESOURCE_TABLE_OFFSET + counter*2 + 1];
+            call FILE_MANAGER;
+            multipop  (R1, R2, R4, R5);
+        endif;
+
+        [kernelStack*512 + RESOURCE_TABLE_OFFSET + counter*2] = -1;
+        [kernelStack*512 + RESOURCE_TABLE_OFFSET + counter*2 + 1] = -1;
+        counter = counter + 1;
+    endwhile;
+
+    multipush (R1, R2, R4);
+    R1 = RELEASE_PAGE;
+    R2 = kernelStack;
+    call MEMORY_MANAGER;
+    multipop  (R1, R2, R4);
+
+    // // breakpoint;
+    return;
+endif;
+
+// exit process
+if (functionNum == EXIT_PROCESS) then
+    alias currentPID R2;
+    multipush (R1, R2);
+    R1 = FREE_PAGE_TABLE;
+    // R2 = currentPID;
+    call PROCESS_MANAGER;
+    multipop  (R1, R2);
+
+    multipush (R1, R2);
+    R1 = FREE_USER_AREA_PAGE;
+    call PROCESS_MANAGER;
+    multipop  (R1, R2);
+
+    [PROCESS_TABLE + 16*currentPID + 4] = TERMINATED;
+
+    // // breakpoint;
+    return;
+endif;
+
+// free page tables
+if (functionNum == FREE_PAGE_TABLE) then
+    alias currentPID R2;
+    alias pageTableEntry R3;
+	
+    R3 = [PROCESS_TABLE + 16*currentPID + 14];
+    [pageTableEntry + 0] = -1;
+    [pageTableEntry + 1] = "0000";
+    [pageTableEntry + 2] = -1;
+    [pageTableEntry + 3] = "0000";
+
+    alias counter R5;
+    counter = 4;
+    while (counter < 20) do
+        if ([pageTableEntry + counter] != -1) then
+            multipush (R1, R2, R3, R5);
+            R1 = RELEASE_PAGE;
+            R2 = [pageTableEntry + counter];
+            call MEMORY_MANAGER;
+            multipop  (R1, R2, R3, R5);
+
+            [pageTableEntry + counter] = -1;
+            [pageTableEntry + counter+1] = "0000";
+
+        endif;
+        counter = counter + 2;
+    endwhile;
+
+    counter = 0;
+    while (counter < 10) do
+        if (counter <= 3 || counter >= 8) then
+            if ([DISK_MAP_TABLE + 10*currentPID + counter] != -1) then
+                multipush (R1, R2, R3, R5);
+                R1 = RELEASE_BLOCK;
+                R3 = currentPID;
+                R2 = [DISK_MAP_TABLE + 10*currentPID + counter];
+                call MEMORY_MANAGER;
+                multipop (R1, R2, R3, R5);
+            endif;
+            [DISK_MAP_TABLE + currentPID*10 + counter] = -1;
+        endif;
+
+        counter = counter + 1;
+    endwhile;
+
+    // // breakpoint;
+    return;
+endif;
+
+if (functionNum == KILL_ALL) then
+    breakpoint;
+    alias pid R2;
+
+    alias counter R5;
+    counter = 0;
+    while (counter < MAX_FILE_NUM) do
+        if ([INODE_TABLE + counter*16 + 1] != -1) then
+            multipush (R1, R2, R5);
+            R1 = ACQUIRE_INODE;
+            R3 = pid;
+            R2 = counter;
+            // R3 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+            call RESOURCE_MANAGER;
+            multipop  (R1, R2, R5);
+        endif;
+        counter = counter + 1;
+    endwhile;
+
+    breakpoint;
+    counter = 2;
+    while (counter < IDLE2_PROCESS) do
+
+        if (counter != pid && [PROCESS_TABLE + counter*16 + 4] != TERMINATED) then
+            multipush (R1, R2, R5);
+            R1 = EXIT_PROCESS;
+            R2 = counter;
+            call PROCESS_MANAGER;
+            multipop  (R1, R2, R5);
+        endif;
+
+        counter = counter + 1;
+    endwhile;
+
+    breakpoint;
+    counter = 0;
+    while (counter < MAX_FILE_NUM) do
+        if ([INODE_TABLE + counter*16 + 1] != -1) then
+            multipush (R1, R2, R5);
+            R1 = RELEASE_INODE;
+            R3 = pid;
+            R2 = counter;
+            // R3 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+            call RESOURCE_MANAGER;
+            multipop  (R1, R2, R5);
+        endif;
+        counter = counter + 1;
+    endwhile;
+
+    breakpoint;
+    return;
+endif;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// alias functionNum R1;
+// alias processId R2;
+
+// if(functionNum == FREE_USER_AREA_PAGE) then
+    
+//     // Arguments are PID
+
+//     // For each entry in the per-process resource table of the process do following -
+//     // If the resource is valid and is semaphore (check the Resource Identifier field in the per-process resource table), then invoke Release Semaphore function of resource manager module.
+//     alias count R3;
+//     alias offset R4;
+//     alias processTableEntryAddress R5;
+//     alias perProcessTableEntry R6;
+//     alias userAreaPageNum R7;
+//     count  = 0;
+//     processTableEntryAddress = PROCESS_TABLE + (processId*16);
+//     userAreaPageNum = [PROCESS_TABLE + processId * 16 + 11];
+
+//     while(count < 8) do 
+//         offset =  RESOURCE_TABLE_OFFSET +2*count;
+//         perProcessTableEntry = (([processTableEntryAddress + 11] ) * PAGE_SIZE ) + offset;
+
+//         // If the resource is semaphore (check the Resource Identifier field in the per-process resource table), then using the sempahore table index, increment the PROCESS COUNT field in the semaphore table entry.
+//         if([perProcessTableEntry] == SEMAPHORE) then
+            
+//             //Invoke RELEASE_SEMAPHORE
+//             multipush(R1, R2, R3, R4, R5, R6,R7);
+//             R1 = RELEASE_SEMAPHORE;
+//             R3 = processId;
+//             R2 = [perProcessTableEntry + 1];
+//             call RESOURCE_MANAGER;
+//             multipop(R1, R2, R3, R4, R5, R6,R7);
+
+//         endif;
+        
+//         // When a process terminates, all the files the process has opened (and haven't closed explicitly) have to be closed. This is done in the Free User Area page function. 
+
+//         // If the resource is valid and is file (check the Resource Identifier field in the per-process resource table), then invoke the Close function of the file manager module .
+//         if([perProcessTableEntry] == FILE) then
+            
+//             //Invoke CLOSE
+//             multipush(R1, R2, R3, R4, R5, R6,R7);
+//             R1 = CLOSE;
+//             R2 = [perProcessTableEntry + 1];
+//             call FILE_MANAGER;
+//             multipop(R1, R2, R3, R4, R5, R6,R7);
+//         endif;
+        
+//         [((userAreaPageNum) * PAGE_SIZE) + RESOURCE_TABLE_OFFSET + 2*count] = -1;
+//         [((userAreaPageNum) * PAGE_SIZE) + RESOURCE_TABLE_OFFSET + 2*count + 1] = -1;
+
+
+//         count = count + 1;
+//     endwhile;
+
+    
+
+//     // Free the user area page by invoking the Release Page function.
+//     multipush(R1, R2, R3, R4, R5, R6);
+//     R1 = RELEASE_PAGE; 
+//     R2 = userAreaPageNum;
+//     call MEMORY_MANAGER; // Memory Manager 
+//     multipop(R1, R2, R3, R4, R5, R6);
+
+// endif;
+
+// if(functionNum == EXIT_PROCESS) then // 3 
+//     // Invoke the Free Page Table function with same PID to deallocate the page table entries.
+//     // Arguement is PID
+//     multipush( R1, R2);
+//     R1 = FREE_PAGE_TABLE;
+//     R2 = processId;
+//     call PROCESS_MANAGER;
+//     multipop(R1, R2);
+
+
+//     // Invoke the Free user Area Page function with the same PID to free the user area page
+//     multipush( R1, R2);
+//     R1 = FREE_USER_AREA_PAGE;
+//     R2 = processId;
+//     call PROCESS_MANAGER;
+//     multipop( R1, R2);
+
+//     // Set the state of the process as TERMINATED and return to the caller.
+//     [PROCESS_TABLE + processId * 16 + 4] = TERMINATED;
+    
+
+
+//     //  when Exit Process is invoked from Exec system call, it should not wake up the processes waiting for the current process and also should not set the children as orphan processes.
+//     if([PROCESS_TABLE+processId*16+9] != 9) then
+//         alias iter R3;
+//         alias currentProcessAddress R4;
+
+//         iter = 0;
+//         while(iter < MAX_PROC_NUM) do
+//             currentProcessAddress = PROCESS_TABLE + iter * 16;
+            
+//             // Loop through the process table of all processes and change the state to READY for the processes whose state is tuple (WAIT_PROCESS, current PID)
+//             if([currentProcessAddress + 4] == WAIT_PROCESS && [currentProcessAddress + 5] == processId) then
+//                 [currentProcessAddress + 4] = READY;
+//                 [currentProcessAddress + 5] = -1;
+//             endif;
+
+//             //  if the PPID of a process is PID of current process, then invalidate PPID field to -1.
+//             if([currentProcessAddress + 2] == processId) then
+//                 [currentProcessAddress + 2] = -1;
+//             endif;
+//             iter = iter + 1;
+//         endwhile;
+//     endif;
+
+// endif;
+
+// if(functionNum == FREE_PAGE_TABLE) then
+//     // Arguement is PID in R2
+
+//     // Invalidate the page table entries for the library pages by setting page number as -1 and auxiliary data as "0000" for each entry.
+//     alias ptbr R3;
+//     ptbr = [PROCESS_TABLE + processId * 16 + 14];
+//     [ptbr + 0] = -1;
+//     [ptbr + 1] = "0000";
+//     [ptbr + 2] = -1;
+//     [ptbr + 3] = "0000";
+
+//     // For each valid entry in the page table, release the page by invoking the Release Page function and invalidate the entry.
+//     alias ptlr R4;
+//     alias count R5;
+//     ptlr = [PROCESS_TABLE + processId * 16 + 15];
+//     count = 4;
+//     while(count < ptlr) do
+//         alias page R6;
+//         page = [ptbr + count * 2];
+//         if(page != -1) then
+//             multipush(R1, R2, R3, R4, R5, R6);
+//             R1 = RELEASE_PAGE;
+//             R2 = page;
+//             call MEMORY_MANAGER;
+//             multipop(R1, R2, R3, R4, R5, R6);
+//             [ptbr + count * 2] = -1;
+//             [ptbr + count * 2 + 1] = "0000";
+//         endif;
+//         count = count + 1;
+//     endwhile;
+
+
+//     // Go through the heap and stack entries in the disk map table of the process with given PID. If any valid entries are found, invoke the Release Blockfunction in the memory manager module.
+//     alias diskMapTableEntry R3;
+//     alias offset R5;
+//     diskMapTableEntry = [DISK_MAP_TABLE + processId * 10 ];
+//     offset = 2;
+//     while(offset < 10) do
+//         alias blockNum R4;
+//         blockNum = [diskMapTableEntry + offset];
+//         if(blockNum != -1) then
+//             multipush( R1, R2, R3, R4, R5);
+//             R1 = RELEASE_BLOCK;
+//             R3 = processId;
+//             R2 = blockNum;
+//             call MEMORY_MANAGER;
+//             multipop( R1, R2, R3, R4, R5);
+//             // Invalidate all the entries of the disk map table.
+//             [diskMapTableEntry + offset] = -1;
+//         endif;
+//         offset = offset + 1;
+//     endwhile;
+    
+// endif;
+
+    
+
+
+// if(functionNum == GET_PCB_ENTRY) then // 1
+
+//     // No arguments
+//     alias processID R0; 
+//     alias count R3;
+//     alias processTableEntryAddress R4;
+
+//     processID =-1;
+//     count = SHELL_PROCESS+1;
+//     while(count < IDLE2_PROCESS)do
+//         processTableEntryAddress = PROCESS_TABLE + count * 16;
+//         if([processTableEntryAddress+4] == TERMINATED) then
+//             [processTableEntryAddress + 1] = count;
+// 			[processTableEntryAddress + 4] = ALLOCATED;
+// 			[processTableEntryAddress + 14] = PAGE_TABLE_BASE + (count * 20);
+// 			[processTableEntryAddress + 15] = 10;
+//             processID = count;
+//             break;
+//         endif;
+//         count = count+1;
+//     endwhile;
+   
+// endif;
+
+// // Kills all the processes except the current process, idle and init/login.
+// if( functionNum == KILL_ALL) then
+//     // Arguements are PID
+
+//     // Lock all files to ensure that no processes are in the middle of a file operation 
+
+//     // For each valid entry in the Inode table   
+//     //    Acquire lock on the file by calling the ACQUIRE_INODE function in the Resource Manager module.
+//     alias iter R3;
+//     iter = 0;
+//     while(iter < MAX_FILE_NUM) do
+
+//         multipush(R1,R2,R3);
+//         // Arguements are Inodeindex, PID	
+//         R1 = ACQUIRE_INODE;
+//         R2 = iter;
+//         R3 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+//         call RESOURCE_MANAGER;
+//         multipop(R1,R2,R3);
+
+//         iter = iter + 1;
+
+//     endwhile;
+
+
+//     // For each pid from 2 to 13 
+//     iter = SHELL_PROCESS;
+//     while(iter < IDLE2_PROCESS) do
+
+
+
+//         //  This code is relevant only when the Pager Module is implemented in Stage 27 
+//         //     If pid == PID of Swapper Daemon         (Swapper Daemon must not be TERMINATED )
+//         //         continue
+
+//         // In Multicore OS, IDLE2 should not be terminated.
+
+
+
+
+
+
+//         // If pid != pid of the current process AND state of the process in the process table entry is not TERMINATED
+//         if(iter != processId && [PROCESS_TABLE + iter * 16 + 4] != TERMINATED) then
+//             //  Invoke the Exit Process function with the pid as argument
+//             multipush(R1,R2,R3);
+//             R1 = EXIT_PROCESS;
+//             R2 = iter;
+//             call PROCESS_MANAGER;
+//             multipop(R1,R2,R3);
+//         endif;
+
+//         iter = iter + 1;
+//     endwhile;
+
+//     // For each valid entry in the Inode table
+//     //    Release lock on the file by calling the RELEASE_INODE function in the Resource Manager module.
+//     iter = 0;
+//     while(iter < MAX_FILE_NUM) do
+
+//         multipush(R1,R2,R3);
+//         // Arguements are Inodeindex, PID	
+//         R1 = RELEASE_INODE;
+//         R2 = iter;
+//         R3 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+//         call RESOURCE_MANAGER;
+//         multipop(R1,R2,R3);
+
+//         iter = iter + 1;
+
+//     endwhile;
+
+// endif;
+
+// return;
+
+
+
+

@@ -1,0 +1,469 @@
+// // breakpoint;
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE+1]*16 + 9] = 5;
+
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE+1]*16 + 13] = SP; 
+SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE+1]*16 + 11]*512 - 1;
+
+R1 = ACQUIRE_KERN_LOCK;
+call ACCESS_CONTROL;
+
+// instuctionPointer+2, returnValue, arguement3, arguement2, arguement1, interruptNumber
+
+alias userSP R0;
+userSP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE+1]*16 + 13];
+
+alias fileDescriptor R1;
+fileDescriptor = [[PTBR + 2*((userSP-4)/512)]*512 + (userSP-4)%512];
+
+alias returnAddress R10;
+returnAddress = [PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512;
+
+alias currentPCB R11;
+currentPCB = PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE+1]*16;
+
+if (fileDescriptor == -2) then
+    alias word R2;
+    word = [[PTBR + 2*((userSP-3)/512)]*512 + (userSP-3)%512];
+
+    multipush (R0, R10, R11);
+    R1 = TERMINAL_WRITE;
+    R3 = word;
+    R2 = [SYSTEM_STATUS_TABLE + 5*CORE+1];
+    call DEVICE_MANAGER;
+    multipop (R0, R10, R11);
+
+    [returnAddress] = 0;
+    [currentPCB + 9] = 0;
+
+    R1 = RELEASE_LOCK;
+    R2 = KERN_LOCK;
+    call ACCESS_CONTROL;
+
+    SP = userSP;
+
+    // // breakpoint;
+    ireturn;    
+endif;
+
+if (fileDescriptor >= 0 && fileDescriptor < 8) then
+    alias kernelStack R2;
+	kernelStack = [currentPCB + 11];
+
+	if ([kernelStack*512 + RESOURCE_TABLE_OFFSET + 2*fileDescriptor] != FILE) then
+		[returnAddress] = -1;
+		[currentPCB + 9] = 0;
+
+        R1 = RELEASE_LOCK;
+        R2 = KERN_LOCK;
+        call ACCESS_CONTROL;
+
+		SP = userSP;
+
+		// // breakpoint;
+		ireturn;
+	endif;
+
+    alias openFileTableIndex R3;
+	openFileTableIndex = [kernelStack*512 + RESOURCE_TABLE_OFFSET + 2*fileDescriptor + 1];
+
+	alias inodeIndex R4;
+	inodeIndex = [OPEN_FILE_TABLE + openFileTableIndex*4];
+
+    alias inodeEntry R6;
+    inodeEntry = INODE_TABLE + inodeIndex*16;
+
+    if ([inodeEntry + 4] == EXCLUSIVE) then
+        if ([SYSTEM_STATUS_TABLE] != ROOT && [SYSTEM_STATUS_TABLE] != [inodeEntry + 3]) then
+            [returnAddress] = -3;
+            [currentPCB + 9] = 0;
+
+            R1 = RELEASE_LOCK;
+            R2 = KERN_LOCK;
+            call ACCESS_CONTROL;
+
+            SP = userSP;
+
+            // // breakpoint;
+            ireturn;
+        endif;
+    endif;
+
+    multipush (R0, R1, R2, R3, R4, R6, R10, R11);
+	R1 = ACQUIRE_INODE;
+	R2 = inodeIndex;
+	R3 = [SYSTEM_STATUS_TABLE + 5*CORE+1];
+	call RESOURCE_MANAGER;
+	R15 = R0;
+	multipop  (R0, R1, R2, R3, R4, R6, R10, R11);
+
+	if (R15 == -1) then
+		[returnAddress] = -1;
+		[currentPCB + 9] = 0;
+
+        R1 = RELEASE_LOCK;
+        R2 = KERN_LOCK;
+        call ACCESS_CONTROL;
+
+		SP = userSP;
+
+		// // breakpoint;
+		ireturn;
+	endif;
+
+    alias seek R7;
+	seek = [OPEN_FILE_TABLE + openFileTableIndex*4 + 2];
+
+    if (seek == MAX_FILE_SIZE) then
+        multipush (R0, R1, R2, R3, R4, R6, R7, R10, R11);
+        R1 = RELEASE_INODE;
+        R2 = inodeIndex;
+        R3 = [SYSTEM_STATUS_TABLE + 5*CORE+1];
+        call RESOURCE_MANAGER;
+        multipop  (R0, R1, R2, R3, R4, R6, R7, R10, R11);
+
+        [returnAddress] = -2;
+        [currentPCB + 9] = 0;
+
+        R1 = RELEASE_LOCK;
+        R2 = KERN_LOCK;
+        call ACCESS_CONTROL;
+
+        SP = userSP;
+
+        // // breakpoint;
+        ireturn;
+    endif;
+
+    if (seek % 512 == 0 && seek == [inodeEntry + 2]) then
+        // // breakpoint;
+        multipush (R0, R1, R2, R3, R4, R6, R7, R10, R11);
+        R1 = GET_FREE_BLOCK;
+        call MEMORY_MANAGER;
+        R15 = R0;
+        multipop (R0, R1, R2, R3, R4, R6, R7, R10, R11);
+
+        if (R15 == -1) then
+            multipush (R0, R1, R2, R3, R4, R6, R7, R10, R11);
+            R1 = RELEASE_INODE;
+            R2 = inodeIndex;
+            R3 = [SYSTEM_STATUS_TABLE + 5*CORE+1];
+            call RESOURCE_MANAGER;
+            multipop (R0, R1, R2, R3, R4, R6, R7, R10, R11);
+
+            [returnAddress] = -2;
+            [currentPCB + 9] = 0;
+
+            R1 = RELEASE_LOCK;
+            R2 = KERN_LOCK;
+            call ACCESS_CONTROL;
+
+            SP = userSP;
+
+            // // breakpoint;
+            ireturn;
+        endif;
+
+        [inodeEntry + 8 + (seek/512)] = R15;
+    endif;
+
+    if (seek == [inodeEntry + 2]) then
+        [inodeEntry + 2] = [inodeEntry + 2] + 1;
+        [ROOT_FILE + inodeIndex*8 + 1] = [inodeEntry + 2];
+    endif;
+    
+    alias word R8;
+    word = [[PTBR + 2*((userSP-3)/512)]*512 + (userSP-3)%512];
+
+    multipush (R0, R1, R2, R3, R4, R6, R7, R8, R10, R11);
+    R1 = BUFFERED_WRITE;
+    R2 = [inodeEntry + 8 + (seek/512)];
+    R3 = seek % 512;
+    R4 = word;
+    call FILE_MANAGER;
+    multipop  (R0, R1, R2, R3, R4, R6, R7, R8, R10, R11);
+
+    [OPEN_FILE_TABLE + openFileTableIndex*4 + 2] = [OPEN_FILE_TABLE + openFileTableIndex*4 + 2] + 1;
+
+    multipush (R0, R1, R2, R3, R4, R6, R7, R8, R10, R11);
+    R1 = RELEASE_INODE;
+    R2 = inodeIndex;
+    R3 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+    call RESOURCE_MANAGER;
+    multipop  (R0, R1, R2, R3, R4, R6, R7, R8, R10, R11);
+
+    [returnAddress] = 0;
+else
+    [returnAddress] = -1;
+endif;
+
+[currentPCB + 9] = 0;
+
+R1 = RELEASE_LOCK;
+R2 = KERN_LOCK;
+call ACCESS_CONTROL;
+
+SP = userSP;
+
+// // breakpoint;
+ireturn;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// alias processTableEntryAddress R1;
+// alias userSP R2;
+// processTableEntryAddress = PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 5*CORE + 1]*16);
+
+// userSP=SP;
+
+// // Set the MODE FLAG field in the process table to the system call number which is 6 for write system call.
+// [processTableEntryAddress + 9] = INT_WRITE;
+
+// // Store the value of register SP in the UPTR field of the process table entry of the current process.
+// [processTableEntryAddress + 13] = SP;
+// // Save the value of register SP as userSP.
+
+// // Initialize SP (kernel stack pointer) to (user area page number)*512 -1.
+// SP = [processTableEntryAddress+ 11] * PAGE_SIZE - 1;
+
+// alias fileDescriptor R3;
+// fileDescriptor = [[PTBR + 2*((userSP-4)/PAGE_SIZE)] * PAGE_SIZE + ((userSP-4)%PAGE_SIZE)] ;
+
+// alias returnValue R4;
+// //code when argument 1 is valid
+// alias word R5;
+// word = [[PTBR + 2 * ((userSP - 3) / PAGE_SIZE)] * PAGE_SIZE + ((userSP - 3) % PAGE_SIZE)];
+
+// // call AQUIRE KERNEL LOCK
+// multipush(R1,R2,R3,R4,R5);
+// R1 = ACQUIRE_KERN_LOCK;
+// call ACCESS_CONTROL;
+// multipop(R1,R2,R3,R4,R5);
+
+
+
+
+// //Retrieve the file descriptor from the user stack, stored at userSP-4.
+
+
+
+// if(fileDescriptor == -2) then
+
+    
+    
+//     // print word; instead of print we are going  
+//     multipush(R1, R2, R3, R4, R5); // number of registers will depend on your code
+//     R1 = TERMINAL_WRITE;
+//     R2 = [SYSTEM_STATUS_TABLE + 5*CORE + 1]; // PID
+//     R3 = word; // word to be printed
+//     call DEVICE_MANAGER; //MOD_4
+//     // Ignore the value present in R0 as Terminal Write does not have any return value.
+//     multipop( R1, R2, R3, R4, R5); // number of registers will depend on your code
+//     returnValue = 0;
+
+
+//     goto KERN_IRET;
+// else
+  
+//     //  If file descriptor is invalid, return -1.     File descriptor value should be within the range 0 to 7 (both included). 
+//     if(fileDescriptor<0 || fileDescriptor>7) then
+//         returnValue = -1;
+//         goto KERN_IRET;
+
+//     endif;
+	
+//     // Locate the Per-Process Resource Table Entry of the current process.
+//     alias perProcessResouceTableEntry R6;
+//     perProcessResouceTableEntry = [processTableEntryAddress + 11]  * PAGE_SIZE  + RESOURCE_TABLE_OFFSET + 2*fileDescriptor;
+
+
+//     // If the Resource identifier field of the Per Process Resource Table entry is invalid or does not indicate a FILE, return -1.  
+//     // No file is open with this file descriptor. 
+//     if( [perProcessResouceTableEntry] != FILE) then
+//         returnValue = -1;
+//         goto KERN_IRET;
+//     endif;
+
+
+//     // Get the index of the Open File Table entry from the Per Process Resource Table entry.
+//     // Get the index of the Inode Table entry from the Open File Table entry. ([openFileTableEntry+1])
+//     alias openFileTableEntry R7;
+//     alias inodeIndexOfFile R8;
+//     alias inodeTableEntryAddress R9;
+//     alias userId R10;
+//     openFileTableEntry = OPEN_FILE_TABLE + [perProcessResouceTableEntry + 1] * 4;
+//     inodeIndexOfFile = [openFileTableEntry];
+//     inodeTableEntryAddress = INODE_TABLE + inodeIndexOfFile * 16;
+//     userId = [processTableEntryAddress+3];
+
+//     // If the exclusive permission is set
+//         // if the current user is not root (root user ID is 1) and the current user does not own the file and the exclusive permisttion is set
+//             // return -3. 
+
+//     if([inodeTableEntryAddress+4] == EXCLUSIVE &&  (userId != ROOT || [inodeTableEntryAddress+3] != userId )) then
+//         //  return to the user mode with -3 stored as return value indicating failure.
+//         returnValue = -3;
+
+//         goto KERN_IRET ;
+
+//     endif;
+  
+
+
+    
+
+    
+    
+
+//     // Acquire the Lock on the File by calling the acquire_inode() function in the Resource Manager module.
+//     multipush(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10);
+//     R1 = ACQUIRE_INODE;
+//     R2 = inodeIndexOfFile;
+//     R3 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+//     call RESOURCE_MANAGER;
+//     multipop(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10);
+
+//     // If acquiring the inode fails, return -1.
+//     if(R0 == -1) then
+//         returnValue = -1;
+
+//         goto KERN_IRET;
+
+//     endif;
+
+//     // Get the Lseek position from the Open File Table entry.([openFileTableEntry+2])
+//     alias lSeek R11;
+//     lSeek = [openFileTableEntry + 2];
+
+
+    
+    
+
+     
+//     // If lseek position is same as the max file size, release_inode() and return -2.  /* End of maximum file size limit reached */
+//     if(lSeek == MAX_FILE_SIZE) then
+    
+        
+//         returnValue = -2;
+
+//         goto KERN_INODE_IRET;
+
+//     endif;
+
+//     // If the Lseek position is a multiple of 512 and the same as File size in the inode table ( New block to be allocated )
+//     alias diskBlockNumber R12;
+
+
+//     if(lSeek%PAGE_SIZE==0 && [inodeTableEntryAddress+2]==lSeek ) then
+//         // Get a free disk block by calling the GET FREE BLOCK function in the Memory Manager module.
+//         multipush(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10,R11,R12);
+//         // Arguements are None
+//         R1 = GET_FREE_BLOCK;
+//         call MEMORY_MANAGER;
+//         multipop(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10,R11,R12);
+//         // return value in R0 is Free Block Number or -1
+//         diskBlockNumber = R0;
+//         // If no free disk block is found RELEASE_INODE and return -2. 
+//         if( diskBlockNumber ==  -1) then
+            
+
+//             returnValue = -2;
+
+//             goto KERN_INODE_IRET;
+
+
+//         endif;
+
+//         // Set the new disk block found in the corresponding (lseek / 512) disk block field  in the Inode table entry.
+//         [inodeTableEntryAddress + 8 + (lSeek/PAGE_SIZE)] = diskBlockNumber;
+//     else
+//         // Get the disk block number from the Inode table entry.
+//         diskBlockNumber = [inodeTableEntryAddress + 8 + (lSeek/PAGE_SIZE)];
+
+//     endif;
+
+
+//     // Get the physical address curresponding to the logical address of Memory Buffer address given as input.
+//     alias word R5;
+//     // Find the disk block number and the position in the block from which input is to be written.
+//     //    Get the block index from lseek position.   (lseek/512 gives the index of the block ) 
+//     //    Get the disk block number corresponding to the block index from the Inode Table .
+//     //    Get the offset value from lseek position.   (lseek%512 gives the position to be written to.)
+    
+
+
+//     // Read the data from the File Buffer by calling the buffered_read() function in the File Manager module.
+//     // arguments are Disk Block Number, Offset, Memory Address
+//     multipush(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10,R11,R12);
+//     R1 = BUFFERED_WRITE;
+//     R2 = diskBlockNumber;
+//     R3 = lSeek%PAGE_SIZE;
+//     R4 = word;
+//     call FILE_MANAGER;
+//     multipop(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10,R11,R12);
+
+
+//     // If Lseek equals file size, increment file size in the inode table entry and also in the memory copy of the root file.
+//     if(lSeek == [inodeTableEntryAddress+2]) then
+
+//         [inodeTableEntryAddress+2] = lSeek+1;
+//         [ROOT_FILE + inodeIndexOfFile*8+1] = lSeek + 1;
+
+//     endif;
+
+//     // Increment the Lseek position in the Open File Table
+//     [openFileTableEntry+2] = lSeek + 1;
+
+//     // Return 0.
+//     returnValue = 0;
+    
+//     //  Release the Lock on the File by calling the release_inode() function in the Resource Manager module.
+//     // calling RELEASE_INODE
+//     KERN_INODE_IRET:
+//     multipush(R1,R2,R3,R4,R5,R6,R7,R8, R9, R10,R11,R12);
+//     // Arguements are Inodeindex, PID	
+//     R1 = RELEASE_INODE;
+//     R2 = inodeIndexOfFile;
+//     R3 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+//     call RESOURCE_MANAGER;
+//     multipop(R1,R2,R3,R4,R5,R6,R7,R8, R9, R10,R11,R12);
+
+    
+// endif;
+
+
+// KERN_IRET:
+
+// multipush(R1,R2,R3,R4,R5,R6,R7,R8, R9, R10,R11,R12);
+// // calling RELEASE KERNEL LOCK
+// R1 = RELEASE_LOCK;
+// R2 = KERN_LOCK;
+// call ACCESS_CONTROL;
+// multipop(R1,R2,R3,R4,R5,R6,R7,R8, R9, R10,R11,R12);
+
+// // setting the mode flag back to zero
+// [processTableEntryAddress + 9] = 0;
+
+// [[PTBR + 2*((userSP-1)/PAGE_SIZE)] * PAGE_SIZE + ((userSP-1)%PAGE_SIZE)] = returnValue;
+
+// // Change SP back to user stack and return to the user mode.
+// SP = [processTableEntryAddress + 13] ;
+
+// ireturn;

@@ -1,0 +1,258 @@
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 5*CORE+1] * 16) + 13] = SP;
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 5*CORE+1] * 16) + 11] * 512 - 1;
+backup;
+
+R1 = ACQUIRE_KERN_LOCK;
+call ACCESS_CONTROL;
+
+alias counter R5;
+if (CORE == PRIMARY_CORE && [SYSTEM_STATUS_TABLE + 5] != 0) then
+    if ([SYSTEM_STATUS_TABLE+1] == SWAPPER_DAEMON) then
+        R1 = [SYSTEM_STATUS_TABLE+5];
+        R2 = SWAPPER_DAEMON;
+        call PAGER_MODULE;
+    endif;
+else 
+    if ([SYSTEM_STATUS_TABLE+2] < MEM_LOW) then
+        [SYSTEM_STATUS_TABLE+5] = SWAP_OUT;
+    else 
+        if ([SYSTEM_STATUS_TABLE+4] > 0) then
+            counter = SHELL_PROCESS + 3;
+            alias swapinPID R1; 
+            swapinPID = -1;
+
+            while (counter < IDLE2_PROCESS) do
+                if ([PROCESS_TABLE + counter*16 + 6] == 1 && [PROCESS_TABLE + counter*16 + 0] > MAX_TICK) then
+                    swapinPID = counter;
+                    break;
+                endif;
+                counter = counter + 1;
+            endwhile;
+
+            if (swapinPID != -1 || [SYSTEM_STATUS_TABLE+2] > MEM_HIGH) then
+                [SYSTEM_STATUS_TABLE+5] = SWAP_IN;
+            endif;
+        endif;
+    endif;
+endif;
+
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 5*CORE + 1] * 16) + 4] = READY;
+
+counter = 0;
+while(counter < 16) do
+	if([PROCESS_TABLE + counter*16 + 4] != TERMINATED) then
+		[PROCESS_TABLE + counter*16] = [PROCESS_TABLE + counter*16] + 1;
+	endif;
+	counter = counter + 1;
+endwhile;
+
+R1 = RELEASE_LOCK;
+R2 = KERN_LOCK;
+call ACCESS_CONTROL;
+
+call SCHEDULER;
+restore;
+
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 5*CORE+1] * 16) + 13];
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 5*CORE + 1] * 16) + 9] = 0;
+
+ireturn;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// // each entry in process table contains 16 words so we multiply by 16 
+// // the 13th word had the UTPR
+// // this code does UTPR = SP
+// [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 5*CORE + 1] * 16) + 13] = SP;
+// // UArea Page number is in PROCESS_TABLE +  PID * 16 since there are 16 words in each entry
+// // Setting SP to UArea Page number * 512 - 1 (kernel stack)
+// SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 5*CORE + 1] * 16) + 11] * 512 - 1;
+// backup;
+
+// // Aquire Kernel
+// R1 = ACQUIRE_KERN_LOCK;
+// call ACCESS_CONTROL;
+
+// // -- Pager Module Code --
+
+// // If swapping is initiated, (Check SYSTEM_STATUS_TABLE PAGING_STATUS == 1)
+// if([SYSTEM_STATUS_TABLE+5] != 0 && CORE == PRIMARY_CORE) then
+
+//     // if the current process is the Swapper Daemon and Paging Status is SWAP_OUT,
+//     if([SYSTEM_STATUS_TABLE + 5*CORE + 1] == SWAPPER_DAEMON  ) then
+
+        
+    
+//         if([SYSTEM_STATUS_TABLE+5] == SWAP_OUT) then
+//             // Call the swap_out() function in the Pager Module.
+//             // Arguments are PID
+//             R1 = SWAP_OUT;
+//             R2 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+//             call PAGER_MODULE;
+//         else
+
+//             // Call the swap_in() function in the Pager Module.
+//             // Arguments are PID
+//             R1 = SWAP_IN;
+//             R2 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+//             call PAGER_MODULE;
+//         endif;
+
+        
+//     endif;
+//         // else if the current process is Idle,                          
+//         // Swapping is ongoing, but the daemon is blocked for some disk operation and idle is being run now 
+//         // Skip to the end to perform context switch. 
+    
+
+  
+
+// else
+// // Swapping is not on now.  Check whether it must be initiated
+
+
+//     // if (MEM_FREE_COUNT < MEM_LOW)      [SYSTEM_STATUS_TABLE+2]
+//     if([SYSTEM_STATUS_TABLE+2]< MEM_LOW) then
+//         // Swap Out to be invoked during next Timer Interrupt
+//         // Set the Paging Status in System Status Table to SWAP_OUT.
+//         [SYSTEM_STATUS_TABLE+5] = SWAP_OUT;
+
+
+//     else
+//         // else if (there are swapped out processes)            (Check SWAPPED_COUNT in System Status Table )
+//         if([SYSTEM_STATUS_TABLE+4]>0)then
+
+            
+//             // if (Tick of any Swapped Out process > MAX_TICK or MEM_FREE_COUNT > MEM_HIGH)
+//             alias iter R1;
+//             alias processTableEntryAddress R2;
+//             iter = SHELL_PROCESS+1;
+
+//             // if MEM_FREE_COUNT is greater than MEM_HIGH
+        
+
+//             while(iter < IDLE2_PROCESS) do
+//                 processTableEntryAddress  = PROCESS_TABLE + 16 * iter; 
+                
+//                 // if any process has TICK greater than MAX_TICK
+//                 if([processTableEntryAddress+6]==1 && ([processTableEntryAddress] > MAX_TICK || [SYSTEM_STATUS_TABLE+2] > MEM_HIGH )) then
+
+//                     // Set the Paging Status in System Status Table to SWAP_IN.
+//                     [SYSTEM_STATUS_TABLE+5] = SWAP_IN;                            
+//                     break;
+
+//                 endif;
+
+
+//                 iter = iter +1;
+//             endwhile;
+
+//         endif;
+
+//     endif;
+
+// endif;
+
+
+
+
+
+
+// // -- Pager Module Code --
+
+
+
+
+// // The Process table entry of the current process can be computed as PROCESS_TABLE + currentPID*16. Save the KPTR, PTBR and PTLR values to the Process Table entry of the current process. Set the state of the process as READY.
+// alias processTableEntryAddress R1;
+// processTableEntryAddress = PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1] * 16;
+
+// // changing status of the current program to ready
+// [processTableEntryAddress + 4] = READY;
+
+// // 2 Obtain the PID of currently executing process from System Status Table.
+
+
+// // increasing tick of every program
+// alias iter R1;
+// iter=0;
+// while(iter<MAX_PROC_NUM) do
+//     if([PROCESS_TABLE + 16*iter + 1] >= 0) then
+//         [PROCESS_TABLE + iter*16 ] = [PROCESS_TABLE + iter*16] + 1;
+//     endif;
+//     iter = iter +1;
+// endwhile;
+
+// // Calling Release Lock on Kernel
+// R1 = RELEASE_LOCK;
+// R2 = KERN_LOCK;
+// call ACCESS_CONTROL;
+
+// // Scheduling algorithm round robin
+// call SCHEDULER;
+
+
+// restore;
+
+// // this code does SP = UTPR;
+// SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 5*CORE + 1] * 16) + 13];
+// [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16 + 9]=0; // MODE
+// ireturn;
+
