@@ -17,7 +17,7 @@ else
         [SYSTEM_STATUS_TABLE+5] = SWAP_OUT;
     else 
         if ([SYSTEM_STATUS_TABLE+4] > 0) then
-            counter = SHELL_PROCESS + 3;
+            counter = SHELL_PROCESS + 1;
             alias swapinPID R1; 
             swapinPID = -1;
 

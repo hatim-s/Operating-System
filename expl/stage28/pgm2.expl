@@ -8,8 +8,11 @@ int main()
 {
 begin
     fdread=exposcall("Open", "numbers.dat");
+    // breakpoint;
 
     pid=exposcall("Getpid");
+    // breakpoint;
+
     if(pid==3) then
         newfile="three.dat";
     endif;
@@ -48,7 +51,11 @@ begin
     endif;
 
     temp=exposcall("Create", newfile, 1);
+    // breakpoint;
+
     fdwrite=exposcall("Open", newfile);
+    // breakpoint;
+
     if(fdread>=0 AND fdwrite>=0) then
         offset=(pid-3)*100;
         temp=exposcall("Seek",fdread, offset);
@@ -62,7 +69,9 @@ begin
         endwhile;
 
         temp=exposcall("Close",fdread);
+        // breakpoint;
         temp=exposcall("Close",fdwrite);
+        // breakpoint;
     else
         temp=exposcall("Write",-2, "OPEN FAIL");
     endif;

@@ -23,9 +23,11 @@ begin
         endif;
 
         pid=exposcall("Getpid");
+        // breakpoint;
         data=pid*1000+1;
         endval=data+99;
         temp=exposcall("SemLock", semid);
+        // breakpoint;
 
         while(data<=endval) do
             temp=exposcall("Write", fd, data);
@@ -34,6 +36,7 @@ begin
 
         temp=exposcall("SemUnLock", semid);
         temp=exposcall("Close", fd);
+        // breakpoint;
     else
         temp=exposcall("Write", -2, "OPEN FAIL");
     endif;

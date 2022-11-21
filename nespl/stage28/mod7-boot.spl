@@ -284,10 +284,15 @@ endwhile;
 [SYSTEM_STATUS_TABLE + 5] = 0;
 [SYSTEM_STATUS_TABLE + 7] = 0;
 
-
 [KERN_LOCK] = 0;
 [SCHED_LOCK] = 0;
+[GLOCK] = 0;
 
+// counter = 0;
+// while (counter < 8) do
+//     [ACCESS_LOCK_TABLE + counter] = 0;
+//     counter = counter + 1;
+// endwhile;
 // // breakpoint;
 return;
 

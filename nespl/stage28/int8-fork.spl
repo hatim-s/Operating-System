@@ -32,7 +32,7 @@ if (childPID == -1) then
 
     SP = userSP;
 
-    print "fork fail";
+    // print "fork fail";
 
     // // breakpoint;
     ireturn;

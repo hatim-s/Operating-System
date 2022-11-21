@@ -1,65 +1,145 @@
+// alias functionNum R1;
+
+// if (functionNum == ACQUIRE_KERN_LOCK) then
+//     if (CORE == SECONDARY_CORE) then
+//         if ([SYSTEM_STATUS_TABLE+5] != 0 || [SYSTEM_STATUS_TABLE+7] != 0) then
+//             [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+6]*16 + 4] = READY;
+//             multipush (R1, R2);
+//             call SCHEDULER;
+//             multipop (R1, R2);
+//         endif;
+//     endif;
+
+//     while (tsl(KERN_LOCK) == 1) do
+//         continue;
+//     endwhile;
+
+//     // print "kernel locked";
+//     // print CORE;
+//     // print [SYSTEM_STATUS_TABLE+(5*CORE)+1];
+//     // print [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+(5*CORE)+1]*16 + 9];
+
+//     // // breakpoint;
+//     return;
+// endif;
+
+// if (functionNum == ACQUIRE_SCHED_LOCK) then
+//     // // breakpoint; // 67664
+
+//     while (tsl(SCHED_LOCK) == 1) do
+//         continue;
+//     endwhile;
+    
+//     // print "sched locked";
+//     // print CORE;
+//     // print [SYSTEM_STATUS_TABLE+(5*CORE)+1];
+
+//     // // breakpoint; // 67706
+//     return;
+// endif;
+
+// if (functionNum == ACQUIRE_GLOCK) then
+//     while (tsl(GLOCK) == 1) do
+//         continue;
+//     endwhile;
+
+//     return;
+// endif;
+
+// if (functionNum == RELEASE_LOCK) then
+//     // if (R2 == KERN_LOCK) then
+//         //     print "kern unlocked";
+//     // endif;
+//     // if (R2 == SCHED_LOCK) then
+//     //     // breakpoint; // 67746
+//     //     // print "schd unlocked";
+//     // endif;
+
+//     alias lockValueAddress R2;
+//     [lockValueAddress] = 0;
+
+//     // // breakpoint; // 67758
+//     return;
+// endif;
+
+
+
+//module 8
+
+//unused bits from access lock table
+define TURN_KERN_LOCK 29576;
+define FLAGS_KERN_LOCK 29579;
+
+define TURN_SCHED_LOCK 29577;
+define FLAGS_SCHED_LOCK 29581;
+
 alias functionNum R1;
 
-if (functionNum == ACQUIRE_KERN_LOCK) then
-    if (CORE == SECONDARY_CORE) then
-        if ([SYSTEM_STATUS_TABLE+5] != 0 || [SYSTEM_STATUS_TABLE+7] != 0) then
-            [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+6]*16 + 4] = READY;
-            multipush (R1, R2);
-            call SCHEDULER;
-            multipop (R1, R2);
-        endif;
-    endif;
+if(functionNum == ACQUIRE_KERN_LOCK) then
+	if(CORE == SECONDARY_CORE) then
+		//if paging status or logout status is on
+		if([SYSTEM_STATUS_TABLE + 5] == 1 || [SYSTEM_STATUS_TABLE + 7] == 1) then
 
-    while (tsl(KERN_LOCK) == 1) do
-        continue;
-    endwhile;
+			//set secondary core process to ready
+			[PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE+6] + 4] = READY;
+			multipush (R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15);
+			call CONTEXT_SWITCH;
+			multipop  (R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15);
+		endif;
+	endif;
 
-    // print "kernel locked";
-    // print CORE;
-    // print [SYSTEM_STATUS_TABLE+(5*CORE)+1];
-    // print [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+(5*CORE)+1]*16 + 9];
+	multipush(R0);
+	alias otherCore R0;
+	if(CORE == PRIMARY_CORE) then
+		otherCore = SECONDARY_CORE;
+	else
+		otherCore = PRIMARY_CORE;
+	endif;
 
-    // // breakpoint;
-    return;
+	[FLAGS_KERN_LOCK + CORE] = 1;
+	[TURN_KERN_LOCK] = otherCore;
+
+	while([FLAGS_KERN_LOCK + otherCore] == 1 && [TURN_KERN_LOCK] == otherCore) do
+		continue;
+	endwhile;
+
+	multipop(R0);
+	return;
 endif;
 
-if (functionNum == ACQUIRE_SCHED_LOCK) then
-    // // breakpoint; // 67664
 
-    while (tsl(SCHED_LOCK) == 1) do
-        continue;
-    endwhile;
-    
-    // print "sched locked";
-    // print CORE;
-    // print [SYSTEM_STATUS_TABLE+(5*CORE)+1];
+if(functionNum == ACQUIRE_SCHED_LOCK) then
 
-    // // breakpoint; // 67706
-    return;
+	multipush(R0);
+	alias otherCore R0;
+	if(CORE == PRIMARY_CORE) then
+		otherCore = SECONDARY_CORE;
+	else
+		otherCore = PRIMARY_CORE;
+	endif;
+
+	[FLAGS_SCHED_LOCK + CORE] = 1;
+	[TURN_SCHED_LOCK] = otherCore;
+
+	while([FLAGS_SCHED_LOCK + otherCore] == 1 && [TURN_SCHED_LOCK] == otherCore) do
+		continue;
+	endwhile;
+
+	multipop(R0);
+	return;
 endif;
 
-if (functionNum == ACQUIRE_GLOCK) then
-    while (tsl(GLOCK) == 1) do
-        continue;
-    endwhile;
 
-    return;
-endif;
+if(functionNum == RELEASE_LOCK) then
+	alias lockVarAddress R2;
 
-if (functionNum == RELEASE_LOCK) then
-    // if (R2 == KERN_LOCK) then
-        //     print "kern unlocked";
-    // endif;
-    // if (R2 == SCHED_LOCK) then
-    //     // breakpoint; // 67746
-    //     // print "schd unlocked";
-    // endif;
-
-    alias lockValueAddress R2;
-    [lockValueAddress] = 0;
-
-    // // breakpoint; // 67758
-    return;
+	if(lockVarAddress == KERN_LOCK) then
+		[FLAGS_KERN_LOCK + CORE] = 0;
+	endif;
+	if(lockVarAddress == SCHED_LOCK) then
+		[FLAGS_SCHED_LOCK + CORE] = 0;
+	endif;	
+	return;
 endif;
 
 

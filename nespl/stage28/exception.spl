@@ -7,7 +7,7 @@ SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 5*CORE + 1]* 16) + 11] * 512 - 1;
 backup;
 
 alias userSP R0;
-R0 = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 5*CORE + 1])*16 + 13];
+R0 = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16 + 13];
 
 multipush (EIP);
 
@@ -58,7 +58,7 @@ if (EPN >= 4 && EPN <= 7) then
 endif;
 
 if (EPN == 2 || EPN == 3) then
-    multipush (R0);
+    multipush (R0, EPN);
     R1 = GET_FREE_PAGE;
     call MEMORY_MANAGER;
 
@@ -70,7 +70,7 @@ if (EPN == 2 || EPN == 3) then
     
     [PTBR + 6] = R0;
     [PTBR + 7] = "1110";
-    multipop  (R0);
+    multipop  (R0, EPN);
 endif;
 
 multipop (EIP);

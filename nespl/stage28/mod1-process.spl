@@ -123,9 +123,9 @@ if (functionNum == FREE_PAGE_TABLE) then
                 call MEMORY_MANAGER;
                 multipop (R1, R2, R3, R5);
             endif;
-            [DISK_MAP_TABLE + currentPID*10 + counter] = -1;
         endif;
-
+        
+        [DISK_MAP_TABLE + currentPID*10 + counter] = -1;
         counter = counter + 1;
     endwhile;
 
