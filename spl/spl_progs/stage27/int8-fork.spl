@@ -142,7 +142,7 @@ while (counter < 8) do
         // print childPID;
         // print [SYSTEM_STATUS_TABLE+1];
 
-        breakpoint;
+        // breakpoint;
     endif;
 
     counter = counter + 1;

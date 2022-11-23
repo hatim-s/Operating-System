@@ -191,8 +191,11 @@ if (systemCallNumber == INT_SEEK) then
     if (offset == 0) then
         [OPEN_FILE_TABLE + openFileTableIndex*4 + 2] = 0;
     else 
-        if (offset + seek > fileSize) then
+        if (offset + seek >= fileSize) then
             [OPEN_FILE_TABLE + openFileTableIndex*4 + 2] = fileSize;
+            
+            breakpoint;
+            print "-1";
         else
             [OPEN_FILE_TABLE + openFileTableIndex*4 + 2] = offset + seek;
         endif;

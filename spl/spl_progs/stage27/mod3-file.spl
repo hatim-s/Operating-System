@@ -201,7 +201,7 @@ if (functionNum == OPEN) then
     // print [SYSTEM_STATUS_TABLE+1];
     // print "------------";
 
-    breakpoint;
+    // breakpoint;
     return;
 endif;
 
@@ -234,6 +234,6 @@ if (functionNum == CLOSE) then
     // print [SYSTEM_STATUS_TABLE+1];
     // print "------------";
 
-    breakpoint;
+    // breakpoint;
     return;
 endif;

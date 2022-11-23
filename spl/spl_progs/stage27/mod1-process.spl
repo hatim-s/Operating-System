@@ -163,7 +163,7 @@ if (functionNum == KILL_ALL) then
         counter = counter + 1;
     endwhile;
 
-    breakpoint;
+    // breakpoint;
     counter = 0;
     while (counter < MAX_FILE_NUM) do
         if ([INODE_TABLE + counter*16 + 1] != -1) then
@@ -177,6 +177,6 @@ if (functionNum == KILL_ALL) then
         counter = counter + 1;
     endwhile;
 
-    breakpoint;
+    // breakpoint;
     return;
 endif;

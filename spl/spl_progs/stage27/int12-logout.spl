@@ -25,7 +25,7 @@ endif;
 multipush (R11, R12, R13);
 R1 = KILL_ALL;
 R2 = [SYSTEM_STATUS_TABLE+1];
-breakpoint;
+// breakpoint;
 call PROCESS_MANAGER;
 multipop  (R11, R12, R13);
 

@@ -1,11 +1,4 @@
-rm ass1.xsm
-rm parent.xsm
-rm child.xsm
-rm merge.xsm
-rm fork.xsm
-rm pid.xsm
-rm create.xsm
-rm delete.xsm
+fdisk
 load --init ../expl/expl_progs/stage23/init.xsm
 load --idle ../expl/expl_progs/stage23/idle.xsm
 load --exec ../expl/expl_progs/stage23/ass1.xsm
